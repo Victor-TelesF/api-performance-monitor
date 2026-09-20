@@ -1,0 +1,20 @@
+[project]
+name = "api-performance-monitor"
+version = "0.1.0"
+description = "Estatísticas e visualizações de latência para análise de desempenho de APIs"
+readme = "README.md"
+authors = [
+    { name = "victor", email = "victortf986@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]>=0.141.1",
+    "matplotlib>=3.11.2",
+    "numpy>=2.5.3",
+    "pydantic>=2.13.5",
+    "sqlalchemy>=2.0.54",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13.0"]
+build-backend = "uv_build"
