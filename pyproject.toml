@@ -8,10 +8,12 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.20.0",
     "fastapi[standard]>=0.141.1",
     "matplotlib>=3.11.2",
     "numpy>=2.5.3",
     "pydantic>=2.13.5",
+    "pytest>=9.1.1",
     "sqlalchemy>=2.0.54",
 ]
 
