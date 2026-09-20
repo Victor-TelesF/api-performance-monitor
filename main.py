@@ -7,13 +7,13 @@ FastAPI usado para receber requisições quando a aplicação for executada.
 
 from fastapi import FastAPI
 from src.api_performance_monitor.database import Base, db_engine
-from src.api_performance_monitor.http_error_handlers import register_exception_handlers
+from api_performance_monitor.errors.http_error_handlers import register_exception_handlers
 
-from src.api_performance_monitor.roots import latency_root
+from api_performance_monitor.roots import datasets_root
 
 Base.metadata.create_all(db_engine)
 
 app = FastAPI(title="API PERFORMANCE MONITOR")
 
 register_exception_handlers(app)
-app.include_router(latency_root.router)
+app.include_router(datasets_root.router)
