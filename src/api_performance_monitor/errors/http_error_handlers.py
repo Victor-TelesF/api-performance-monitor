@@ -7,7 +7,7 @@ As rotas podem deixar essas exceções propagarem sem repetir ``try/except``.
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from .domain.exceptions import (
+from ..domain.exceptions import (
     DatasetWouldBecomeEmptyError,
     DomainError,
     LatencyNotFoundError,
