@@ -1,3 +1,40 @@
+# Ambientes locais e credenciais
 .venv/
+.env*
+!.env.example
+!.env.sample
+*.pem
+*.key
+
+# Python, ferramentas e distribuicoes
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Dados e saidas gerados localmente
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.log
+/histograma.png
+/boxplot.png
+/linha.png
+/acumulada.png
+/frequencia.png
+
+# Arquivos pessoais do editor e do sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
