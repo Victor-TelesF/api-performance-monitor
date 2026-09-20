@@ -1,8 +1,8 @@
 """Conversões entre o pedido HTTP, o domínio e a linha de persistência."""
 
 from ..domain.latency import LatencyDataset
-from ..errors import DatasetNotFoundError
-from ..models.latency_dataset_model import LatencyDatasetCreateModel
+from ..errors.errors import DatasetNotFoundError
+from ..models.datasets_models import LatencyDatasetsModel
 from ..schemas.latency_dataset_schema import (
     CreateLatencyDatasetSchema,
     ResponseLatencyDatasetSchema,
@@ -17,12 +17,12 @@ def schema_to_domain(data: CreateLatencyDatasetSchema) -> LatencyDataset:
     return LatencyDataset(data.latency_ms)
 
 
-def domain_to_model(dataset: LatencyDataset) -> LatencyDatasetCreateModel:
+def domain_to_model(dataset: LatencyDataset) -> LatencyDatasetsModel:
     """Devolve uma nova linha ORM com cópia das medições; não salva no banco."""
-    return LatencyDatasetCreateModel(latency_ms=list(dataset.measurements))
+    return LatencyDatasetsModel(latency_ms=list(dataset.measurements))
 
 
-def model_to_domain(model: LatencyDatasetCreateModel | None) -> LatencyDataset:
+def model_to_domain(model: LatencyDatasetsModel | None) -> LatencyDataset:
     """Devolve um ``LatencyDataset`` reconstruído da linha recebida.
 
     Lança ``DatasetNotFoundError`` quando a busca no banco retornou ``None``.
@@ -32,7 +32,7 @@ def model_to_domain(model: LatencyDatasetCreateModel | None) -> LatencyDataset:
     return LatencyDataset(model.latency_ms)
 
 
-def schema_to_model(data: CreateLatencyDatasetSchema) -> LatencyDatasetCreateModel:
+def schema_to_model(data: CreateLatencyDatasetSchema) -> LatencyDatasetsModel:
     """Devolve uma nova linha ORM após validar o pedido no domínio.
 
     Combina ``schema_to_domain`` e ``domain_to_model``; não salva no banco.
@@ -40,7 +40,7 @@ def schema_to_model(data: CreateLatencyDatasetSchema) -> LatencyDatasetCreateMod
     return domain_to_model(schema_to_domain(data))
 
 
-def model_to_schema(model: LatencyDatasetCreateModel | None) -> ResponseLatencyDatasetSchema:
+def model_to_schema(model: LatencyDatasetsModel | None) -> ResponseLatencyDatasetSchema:
     """Devolve o schema de resposta com o ID e as latências de uma linha salva.
 
     Lança ``DatasetNotFoundError`` se ``model`` é ``None``. O ID precisa ter
@@ -52,8 +52,8 @@ def model_to_schema(model: LatencyDatasetCreateModel | None) -> ResponseLatencyD
 
 
 def update_model_from_domain(
-    model: LatencyDatasetCreateModel | None, dataset: LatencyDataset
-) -> LatencyDatasetCreateModel:
+    model: LatencyDatasetsModel | None, dataset: LatencyDataset
+) -> LatencyDatasetsModel:
     """Substitui a lista JSON de uma linha existente e devolve a mesma linha.
 
     Atribuir uma lista nova permite ao SQLAlchemy detectar a mudança. O mapper
