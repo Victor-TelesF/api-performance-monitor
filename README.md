@@ -1,9 +1,85 @@
 # API Performance Monitor
 
 Projeto para analisar medições de latência de requisições, em milissegundos.
-Este guia mostra como usar as camadas `domain` e `visualization` diretamente.
-Os arquivos de API e persistência em desenvolvimento não são necessários para
-executar os exemplos abaixo.
+A API usa FastAPI e PostgreSQL, com a estrutura do banco versionada pelo Alembic.
+Os exemplos de domínio e visualização mais abaixo também funcionam diretamente
+em Python, sem iniciar a API ou o banco.
+
+## Executar a API com Docker
+
+Pré-requisito: Docker com Compose instalado e o motor do Docker iniciado.
+Na raiz do projeto, prepare as variáveis locais:
+
+```bash
+cp .env.example .env
+```
+
+Os valores do exemplo são para aprendizado local. O `.env` não entra no Git
+nem na imagem Docker. A classe `Settings`, em `config.py`, lê as variáveis
+`POSTGRES_*` e monta a URL usada pelo SQLAlchemy. No Compose, a API recebe
+essas variáveis pelo ambiente, com host `db` e porta `5432`.
+
+Construa a imagem, inicie o banco, aplique a primeira migração e inicie a API:
+
+```bash
+docker compose build api
+docker compose up -d db
+docker compose run --rm api uv run --locked --no-sync alembic upgrade head
+docker compose up -d api
+```
+
+Acesse o Swagger em <http://localhost:8000/docs>. Para conferir a persistência,
+use `POST /Datasets/datasets/create` com `{"latency_ms": [100, 120, 150]}` e
+depois `GET /Datasets/datasets/list`.
+
+O Compose espera o PostgreSQL ficar pronto antes de iniciar o serviço da API.
+As migrações são aplicadas explicitamente pelo comando acima; iniciar a API
+não cria nem altera tabelas.
+
+```bash
+docker compose logs -f api
+docker compose exec api uv run --locked --no-sync alembic current
+docker compose down
+```
+
+`down` remove os containers, mas preserva os dados no volume `postgres_data`.
+Na próxima execução, `docker compose up -d` inicia os serviços novamente.
+O PostgreSQL começa vazio: o arquivo SQLite antigo não é alterado nem importado.
+As variáveis `POSTGRES_*` inicializam o banco apenas quando o volume está vazio.
+
+No WSL, habilite a integração da distribuição no Docker Desktop. Se estiver
+usando o cliente Windows pelo WSL, os comandos também podem usar `docker.exe`
+no lugar de `docker`.
+
+## Primeira versão do banco
+
+A revisão `0001`, em `alembic/versions/0001_create_latency_tables.py`, cria
+`latency_datasets` e `latency_measurements`, incluindo a chave estrangeira,
+os índices e as restrições presentes nos modelos. `upgrade()` cria essa
+estrutura; `downgrade()` remove as duas tabelas e seus dados.
+
+O arquivo `alembic/env.py` carrega `Base.metadata` e usa a mesma conexão da API.
+`alembic current` mostra a revisão aplicada; `alembic history` mostra o histórico
+dos arquivos de migração. Foi criada apenas a versão inicial.
+
+Para praticar futuras migrações, execute o Alembic no ambiente local, para que
+os novos arquivos sejam salvos no projeto. Com o PostgreSQL do Compose ativo:
+
+```bash
+uv sync --locked
+POSTGRES_HOST=localhost uv run --locked alembic current
+```
+
+O `Settings` carrega as credenciais do `.env`. O comando acima substitui apenas
+o host para acessar a porta publicada pelo Docker: no host, o endereço é
+`localhost`; entre containers, é `db`.
+
+Depois de uma alteração futura nos modelos, você poderá gerar uma revisão com
+`POSTGRES_HOST=localhost uv run --locked alembic revision --autogenerate -m "descricao_da_alteracao"`,
+revisar o arquivo e aplicá-lo com
+`POSTGRES_HOST=localhost uv run --locked alembic upgrade head`.
+Reconstrua a imagem com `docker compose up -d --build api` após mudar o código
+ou adicionar migrações, pois os arquivos são copiados para a imagem no build.
 
 ## Preparar e executar
 
