@@ -1,10 +1,11 @@
-"""Objetos de acesso ao SQLite usados pela aplicação FastAPI.
+"""Conexão com PostgreSQL e sessões usadas pela aplicação FastAPI.
 
-``create_engine`` configura a conexão com o arquivo indicado por
-``DATABASE_URL``. ``sessionmaker`` cria sessões vinculadas a esse engine.
+``DATABASE_URL`` é montada pelo Settings a partir das variáveis ``POSTGRES_*``.
+``sessionmaker`` cria sessões vinculadas ao engine do SQLAlchemy.
 ``SessionDep`` informa ao FastAPI que deve obter uma ``Session`` chamando
 ``get_db``; o contexto de dependência fecha a sessão após o uso.
 """
+
 
 from sqlalchemy.orm import Session, sessionmaker, DeclarativeBase
 from sqlalchemy import create_engine
@@ -12,12 +13,13 @@ from sqlalchemy import create_engine
 from fastapi import Depends
 
 from typing import Annotated
+from .config import settings
 
-DATABASE_URL = "sqlite:///./api_performance.db"
+DATABASE_URL = settings.database_url
 
-db_engine = create_engine(DATABASE_URL)
+db_engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
-SessionLocal = sessionmaker(bind=db_engine)
+SessionLocal = sessionmaker(autocommit=False , autoflush=False,bind=db_engine)
 
 class Base(DeclarativeBase):
     """Classe base de mapeamento do SQLAlchemy; guarda os metadados das tabelas."""
