@@ -12,7 +12,9 @@ dependencies = [
     "fastapi[standard]>=0.141.1",
     "matplotlib>=3.11.2",
     "numpy>=2.5.3",
+    "psycopg[binary]>=3.3.6",
     "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
     "pytest>=9.1.1",
     "sqlalchemy>=2.0.54",
 ]
