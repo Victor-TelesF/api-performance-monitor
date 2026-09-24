@@ -1,19 +1,19 @@
-"""Roteador FastAPI reservado para futuras rotas de latência.
-
-``router`` agrupa rotas com o prefixo ``/``; este módulo ainda não registra
-nenhuma operação e, portanto, não devolve respostas por conta própria.
-"""
+"""Rotas de persistência dos datasets e de suas medições de latência."""
 
 from fastapi import APIRouter
-from sqlalchemy import select, delete, insert, update
-from ..database import SessionDep
 
-from ..models.datasets_models import LatencyDatasetsModel
-from ..schemas.latency_dataset_schema import CreateLatencyDatasetSchema, ResponseLatencyDatasetSchema
-from ..mapper.latency_mapper import domain_to_model, model_to_domain, schema_to_domain, schema_to_model, model_to_schema
+from ..database import SessionDep
+from ..errors.errors import DatasetNotFoundError
+from ..mapper.latency_mapper import model_to_schema, schema_to_model
+from ..models.datasets_models import LatencyDatasetModel
+from ..schemas.latency_dataset_schema import (
+    CreateLatencyDatasetSchema,
+    ResponseLatencyDatasetSchema,
+)
 
 
 router = APIRouter(prefix="/Datasets")
+
 
 @router.post("/datasets/create", response_model=CreateLatencyDatasetSchema)
 def create_dataset(dataset: CreateLatencyDatasetSchema, db: SessionDep):
@@ -23,24 +23,30 @@ def create_dataset(dataset: CreateLatencyDatasetSchema, db: SessionDep):
     db.refresh(data)
     return dataset
 
+
 @router.get("/datasets/list", response_model=list[ResponseLatencyDatasetSchema])
 def datasets_list(db: SessionDep):
-    data = db.query(LatencyDatasetsModel).all()
-    lista = [model_to_schema(x) for x in data]
-    return lista
+    data = db.query(LatencyDatasetModel).all()
+    return [model_to_schema(model) for model in data]
+
 
 @router.get("/datasets/details/{dataset_id}", response_model=list[float])
-def datasets_details(id: int, db: SessionDep):
-    data = db.get(LatencyDatasetsModel, id)
+def datasets_details(dataset_id: int, db: SessionDep):
+    data = db.get(LatencyDatasetModel, dataset_id)
     return model_to_schema(data).latency_ms
 
+
 @router.delete("/datasets/delete/{dataset_id}", response_model=str)
-def datasets_delete(id: int, db: SessionDep):
-    db.execute(delete(LatencyDatasetsModel).where(LatencyDatasetsModel.id == id))
+def datasets_delete(dataset_id: int, db: SessionDep):
+    data = db.get(LatencyDatasetModel, dataset_id)
+    if data is None:
+        raise DatasetNotFoundError(dataset_id)
+
+    db.delete(data)
     db.commit()
     return "Deletado com sucesso"
 
-@router.post("measurements/add/{dataset_id}")
-def measurements_add(id: int, db: SessionDep):
 
+@router.post("/measurements/add/{dataset_id}")
+def measurements_add(dataset_id: int, db: SessionDep):
     return
