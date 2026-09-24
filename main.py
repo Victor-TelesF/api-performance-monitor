@@ -6,7 +6,7 @@ FastAPI usado para receber requisições quando a aplicação for executada.
 """
 
 from fastapi import FastAPI
-from src.api_performance_monitor.database import Base, db_engine
+from api_performance_monitor.database import Base, db_engine
 from api_performance_monitor.errors.http_error_handlers import register_exception_handlers
 
 from api_performance_monitor.roots import datasets_root
