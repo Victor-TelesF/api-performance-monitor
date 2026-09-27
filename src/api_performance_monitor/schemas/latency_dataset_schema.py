@@ -6,13 +6,12 @@ class CreateLatencyDatasetSchema(BaseModel):
 
 
 class ResponseLatencyDatasetSchema(BaseModel):
-
     model_config = ConfigDict(from_attributes=True)
     id: int
     latency_ms: list[float]
 
 
-class AddLatencyMeasurementSchema(BaseModel):
+class LatencyMeasurementSchema(BaseModel):
     latency_ms: float
 
 

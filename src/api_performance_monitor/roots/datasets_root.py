@@ -1,23 +1,15 @@
 """Rotas de persistência dos datasets e de suas medições de latência."""
 
 from fastapi import APIRouter
-from sqlalchemy import select
 
 from ..database import SessionDep
-from ..mapper.latency_mapper import (
-    model_to_domain,
-    model_to_schema,
-    schema_to_model,
-    update_model_from_domain,
-)
-from ..models.datasets_models import LatencyDatasetModel
 from ..schemas.error_schema import ErrorResponseSchema
 from ..schemas.latency_dataset_schema import (
-    AddLatencyMeasurementSchema,
     CreateLatencyDatasetSchema,
+    LatencyMeasurementSchema,
     ResponseLatencyDatasetSchema,
 )
-
+from ..services.latency_dataset_service import LatencyDatasetService
 
 router = APIRouter(
     prefix="/Datasets",
@@ -37,11 +29,8 @@ router = APIRouter(
     response_model=ResponseLatencyDatasetSchema,
 )
 def create_dataset(dataset: CreateLatencyDatasetSchema, db: SessionDep):
-    model = schema_to_model(dataset)
-    db.add(model)
-    db.commit()
-    db.refresh(model)
-    return model_to_schema(model)
+    service = LatencyDatasetService(db)
+    return service.create_dataset(dataset)
 
 
 @router.get(
@@ -50,10 +39,9 @@ def create_dataset(dataset: CreateLatencyDatasetSchema, db: SessionDep):
     summary="Listar datasets",
     response_model=list[ResponseLatencyDatasetSchema],
 )
-def datasets_list(db: SessionDep):
-    stmt = select(LatencyDatasetModel)
-    model = db.scalars(stmt).all()
-    return [model_to_schema(dataset) for dataset in model]
+def list_datasets(db: SessionDep):
+    service = LatencyDatasetService(db)
+    return service.list_datasets()
 
 
 @router.get(
@@ -62,23 +50,20 @@ def datasets_list(db: SessionDep):
     summary="Consultar um dataset",
     response_model=ResponseLatencyDatasetSchema,
 )
-def datasets_details(dataset_id: int, db: SessionDep):
-    model = db.get(LatencyDatasetModel, dataset_id)
-    return model_to_schema(model)
+def get_dataset(dataset_id: int, db: SessionDep):
+    service = LatencyDatasetService(db)
+    return service.get_dataset(dataset_id)
 
 
 @router.delete(
     "/datasets/delete/{dataset_id}",
     tags=["Datasets"],
     summary="Excluir um dataset",
-    response_model=str,
+    response_model=ResponseLatencyDatasetSchema,
 )
-def datasets_delete(dataset_id: int, db: SessionDep):
-    model = db.get(LatencyDatasetModel, dataset_id)
-    response = model_to_schema(model)
-    db.delete(model)
-    db.commit()
-    return f"Dataset deletado com sucesso: {response}"
+def delete_dataset(dataset_id: int, db: SessionDep):
+    service = LatencyDatasetService(db)
+    return service.delete_dataset(dataset_id)
 
 
 @router.post(
@@ -87,18 +72,11 @@ def datasets_delete(dataset_id: int, db: SessionDep):
     summary="Adicionar uma medição",
     response_model=ResponseLatencyDatasetSchema,
 )
-def measurements_add(
-    dataset_id: int, measurement: AddLatencyMeasurementSchema, db: SessionDep
+def add_measurement(
+    dataset_id: int, measurement: LatencyMeasurementSchema, db: SessionDep
 ):
-    model = db.get(LatencyDatasetModel, dataset_id)
-    domain = model_to_domain(model)
-    domain.add(measurement.latency_ms)
-
-    update_model_from_domain(model, domain)
-
-    db.commit()
-    db.refresh(model)
-    return model_to_schema(model)
+    service = LatencyDatasetService(db)
+    return service.add_measurement(dataset_id, measurement.latency_ms)
 
 
 @router.delete(
@@ -107,18 +85,9 @@ def measurements_add(
     summary="Remover uma medição",
     response_model=ResponseLatencyDatasetSchema,
 )
-def measurements_remove(dataset_id: int, measurement: float, db: SessionDep):
-    model = db.get(LatencyDatasetModel, dataset_id)
-
-    domain = model_to_domain(model)
-    domain.remove(measurement)
-
-    update_model_from_domain(model, domain)
-
-    db.commit()
-    db.refresh(model)
-
-    return model_to_schema(model)
+def remove_measurement(dataset_id: int, measurement: float, db: SessionDep):
+    service = LatencyDatasetService(db)
+    return service.remove_measurement(dataset_id, measurement)
 
 
 @router.get(
@@ -127,10 +96,9 @@ def measurements_remove(dataset_id: int, measurement: float, db: SessionDep):
     summary="Verificar se uma medição existe",
     response_model=bool,
 )
-def measurements_contains(dataset_id: int, measurement: float, db: SessionDep):
-    model = db.get(LatencyDatasetModel, dataset_id)
-    domain = model_to_domain(model)
-    return domain.contains(measurement)
+def contains_measurement(dataset_id: int, measurement: float, db: SessionDep):
+    service = LatencyDatasetService(db)
+    return service.get_domain(dataset_id).contains(measurement)
 
 
 @router.get(
@@ -139,7 +107,6 @@ def measurements_contains(dataset_id: int, measurement: float, db: SessionDep):
     summary="Contar ocorrências de uma medição",
     response_model=int,
 )
-def measurements_occurrences(dataset_id: int, measurement: float, db: SessionDep):
-    model = db.get(LatencyDatasetModel, dataset_id)
-    domain = model_to_domain(model)
-    return domain.count_occurrences(measurement)
+def count_measurement_occurrences(dataset_id: int, measurement: float, db: SessionDep):
+    service = LatencyDatasetService(db)
+    return service.get_domain(dataset_id).count_occurrences(measurement)
