@@ -6,18 +6,26 @@ As tabelas são criadas pelas migrações do Alembic antes de iniciar a API.
 
 from fastapi import FastAPI
 
-from api_performance_monitor.errors.http_error_handlers import register_exception_handlers
-from api_performance_monitor.roots import datasets_root
-
+from api_performance_monitor.errors.http_error_handlers import (
+    register_exception_handlers,
+)
+from api_performance_monitor.roots import datasets_root, statistics_root
 
 tags_metadata = [
     {
         "name": "Datasets",
-        "description": "Criação e gerenciamento dos datasets.",
+        "description": "Criação, listagem, consulta e exclusão dos datasets de latência.",
     },
     {
         "name": "Medições",
-        "description": "Consulta e alteração das medições de latência.",
+        "description": "Adição, remoção e consulta das medições de um dataset.",
+    },
+    {
+        "name": "Estatísticas",
+        "description": (
+            "Consultas de tendência central, dispersão, percentis, limites "
+            "e possíveis valores atípicos."
+        ),
     },
 ]
 
@@ -36,3 +44,4 @@ app = FastAPI(
 
 register_exception_handlers(app)
 app.include_router(datasets_root.router)
+app.include_router(statistics_root.router)
