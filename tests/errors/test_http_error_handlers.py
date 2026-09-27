@@ -9,6 +9,8 @@ Os handlers são `async def` — use `asyncio.run(...)` para chamá-los.
 import asyncio
 import json
 
+from fastapi.exceptions import RequestValidationError
+
 from api_performance_monitor.domain.exceptions import (
     DatasetWouldBecomeEmptyError,
     EmptyLatencyDatasetError,
@@ -22,7 +24,36 @@ from api_performance_monitor.errors.errors import DatasetNotFoundError
 from api_performance_monitor.errors.http_error_handlers import (
     handle_dataset_not_found,
     handle_domain_error,
+    handle_request_validation_error,
 )
+
+
+def test_handle_request_validation_error_returns_standard_422_detail() -> None:
+    """Erros estruturais do FastAPI devem seguir o contrato comum da API."""
+    error = RequestValidationError([])
+
+    response = asyncio.run(handle_request_validation_error(None, error))
+
+    assert response.status_code == 422
+    assert json.loads(response.body) == {"detail": "Dados de entrada inválidos."}
+
+
+def test_request_and_domain_validation_errors_share_the_same_shape() -> None:
+    """Os dois caminhos de validação devem devolver ``detail`` como string."""
+    request_error = RequestValidationError([])
+    domain_error = InvalidLatencyError("Latência inválida.")
+
+    request_response = asyncio.run(
+        handle_request_validation_error(None, request_error)
+    )
+    domain_response = asyncio.run(handle_domain_error(None, domain_error))
+
+    request_body = json.loads(request_response.body)
+    domain_body = json.loads(domain_response.body)
+
+    assert request_body.keys() == domain_body.keys() == {"detail"}
+    assert isinstance(request_body["detail"], str)
+    assert isinstance(domain_body["detail"], str)
 
 
 def test_handle_dataset_not_found_returns_404_with_detail() -> None:
