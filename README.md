@@ -6,8 +6,8 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
 Backend para armazenar e analisar conjuntos de medições de latência. A API HTTP
-atual gerencia datasets e suas medições; o domínio isolado já implementa os
-cálculos estatísticos e as visualizações usados na evolução do projeto.
+gerencia datasets e suas medições e expõe consultas estatísticas; o domínio
+isolado concentra os cálculos e as visualizações usados pelo projeto.
 
 > **Status:** em desenvolvimento. A versão atual trabalha com datasets de
 > latência informados pelo usuário; a coleta automática de APIs externas ainda
@@ -19,6 +19,7 @@ cálculos estatísticos e as visualizações usados na evolução do projeto.
   - criar, consultar, listar e excluir datasets;
   - adicionar e remover medições preservando sua ordem;
   - consultar a existência e a quantidade de ocorrências de uma latência;
+  - calcular tendência central, dispersão, percentis, limites e outliers;
   - documentar e testar as operações pelo Swagger UI;
 - domínio Python para:
   - validar valores negativos, booleanos, `NaN` e infinitos;
@@ -35,7 +36,8 @@ cálculos estatísticos e as visualizações usados na evolução do projeto.
 ```mermaid
 flowchart LR
     Client[Cliente HTTP] --> API[FastAPI / Pydantic]
-    API --> Mapper[Mapper]
+    API --> Service[Serviço de datasets]
+    Service --> Mapper[Mapper]
     Mapper <--> Domain[Domínio de latência]
     Mapper <--> ORM[SQLAlchemy ORM]
     ORM --> DB[(PostgreSQL)]
@@ -44,15 +46,16 @@ flowchart LR
 ```
 
 As regras matemáticas permanecem no domínio e não dependem do FastAPI nem do
-SQLAlchemy. O mapper faz a conversão explícita entre schemas HTTP, objetos de
-domínio e modelos persistidos.
+SQLAlchemy. O serviço coordena as operações das rotas, enquanto o mapper faz a
+conversão explícita entre schemas HTTP, objetos de domínio e modelos
+persistidos.
 
 ## Tecnologias
 
 | Área | Tecnologia |
 | --- | --- |
 | API e contratos | FastAPI e Pydantic |
-| Domínio e cálculos | Python, NumPy e biblioteca `statistics` |
+| Domínio e cálculos | Python e NumPy |
 | Persistência | SQLAlchemy e PostgreSQL 17 |
 | Migrações | Alembic |
 | Visualização | Matplotlib |
@@ -100,6 +103,34 @@ resposta, evitando uma consulta adicional durante os testes.
 | `GET` | `/Datasets/measurements/contains/{dataset_id}` | Verificar se uma medição existe. |
 | `GET` | `/Datasets/measurements/occurrences/{dataset_id}` | Contar ocorrências de uma medição. |
 
+### Estatísticas
+
+| Método | Caminho | Finalidade |
+| --- | --- | --- |
+| `GET` | `/statistics/count/{dataset_id}` | Consultar a quantidade de medições. |
+| `GET` | `/statistics/total/{dataset_id}` | Consultar a soma das latências. |
+| `GET` | `/statistics/minimum/{dataset_id}` | Consultar a menor latência. |
+| `GET` | `/statistics/maximum/{dataset_id}` | Consultar a maior latência. |
+| `GET` | `/statistics/amplitude/{dataset_id}` | Consultar a diferença entre o maior e o menor valor. |
+| `GET` | `/statistics/mean/{dataset_id}` | Consultar a média aritmética. |
+| `GET` | `/statistics/median/{dataset_id}` | Consultar a mediana. |
+| `GET` | `/statistics/mode/{dataset_id}` | Consultar as modas do dataset. |
+| `GET` | `/statistics/variance/{dataset_id}` | Consultar a variância populacional ou amostral. |
+| `GET` | `/statistics/standard-deviation/{dataset_id}` | Consultar o desvio padrão populacional ou amostral. |
+| `GET` | `/statistics/first-quartile/{dataset_id}` | Consultar o primeiro quartil. |
+| `GET` | `/statistics/second-quartile/{dataset_id}` | Consultar o segundo quartil. |
+| `GET` | `/statistics/third-quartile/{dataset_id}` | Consultar o terceiro quartil. |
+| `GET` | `/statistics/interquartile-range/{dataset_id}` | Consultar o intervalo interquartil. |
+| `GET` | `/statistics/percentile/{dataset_id}` | Consultar um percentil. |
+| `GET` | `/statistics/outliers/{dataset_id}` | Consultar possíveis valores atípicos. |
+| `GET` | `/statistics/count-above/{dataset_id}` | Contar medições acima de um limite. |
+| `GET` | `/statistics/proportion-above/{dataset_id}` | Consultar a proporção acima de um limite. |
+| `GET` | `/statistics/count-at-or-below/{dataset_id}` | Contar medições menores ou iguais a um limite. |
+
+As rotas de variância e desvio padrão aceitam o parâmetro de consulta
+`sample`, com valor padrão `false`. A rota de percentil usa `percent=95` por
+padrão, e as consultas por limite usam `threshold_ms=120`.
+
 ## Contrato de erros
 
 Os erros conhecidos da API usam o mesmo formato de resposta:
@@ -137,6 +168,7 @@ Swagger UI.
 │   ├── models/                      # Modelos SQLAlchemy
 │   ├── roots/                       # Rotas FastAPI
 │   ├── schemas/                     # Contratos Pydantic
+│   ├── services/                    # Orquestração entre API e persistência
 │   └── visualization/               # Gráficos e exportação PNG
 ├── compose.yaml
 ├── Dockerfile
