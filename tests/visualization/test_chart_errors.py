@@ -1,3 +1,5 @@
+"""Testes da validação do número de bins do histograma de latência."""
+
 from typing import Any
 
 import pytest
@@ -19,6 +21,7 @@ from api_performance_monitor.visualization import create_latency_histogram
     ),
 )
 def test_histogram_rejects_invalid_number_of_bins(invalid_bins: Any) -> None:
+    """Rejeita valores de bins que não sejam inteiros positivos."""
     dataset = LatencyDataset([100, 200, 300])
 
     with pytest.raises(ValueError) as error:
@@ -35,6 +38,7 @@ def test_histogram_rejects_invalid_number_of_bins(invalid_bins: Any) -> None:
     ),
 )
 def test_histogram_accepts_valid_bin_boundaries(valid_bins: int | None) -> None:
+    """Aceita a seleção automática e o menor número explícito de bins."""
     dataset = LatencyDataset([100, 200, 300])
 
     figure = create_latency_histogram(dataset, bins=valid_bins)

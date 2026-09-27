@@ -1,3 +1,5 @@
+"""Testes das validações e garantias de estado do domínio de latência."""
+
 from collections.abc import Callable
 from decimal import Decimal
 from typing import Any
@@ -54,6 +56,7 @@ INVALID_THRESHOLDS = (
 
 
 def test_rejects_empty_dataset() -> None:
+    """Rejeita a criação de um dataset sem medições."""
     with pytest.raises(EmptyLatencyDatasetError) as error:
         LatencyDataset([])
 
@@ -61,6 +64,7 @@ def test_rejects_empty_dataset() -> None:
 
 
 def test_rejects_non_iterable_measurements() -> None:
+    """Rejeita um valor não iterável no lugar da coleção de medições."""
     measurements: Any = 100
 
     with pytest.raises(InvalidLatencyError) as error:
@@ -70,7 +74,10 @@ def test_rejects_non_iterable_measurements() -> None:
 
 
 @pytest.mark.parametrize("invalid_latency", INVALID_LATENCIES)
-def test_constructor_rejects_each_invalid_latency_category(invalid_latency: Any) -> None:
+def test_constructor_rejects_each_invalid_latency_category(
+    invalid_latency: Any,
+) -> None:
+    """Rejeita cada categoria de latência inválida durante a construção."""
     with pytest.raises(InvalidLatencyError) as error:
         LatencyDataset([100, invalid_latency])
 
@@ -78,6 +85,7 @@ def test_constructor_rejects_each_invalid_latency_category(invalid_latency: Any)
 
 
 def test_latency_validation_accepts_valid_boundary_values() -> None:
+    """Aceita zero e valores decimais finitos nas operações do dataset."""
     dataset = LatencyDataset([0, Decimal("0.125")])
 
     dataset.add(0)
@@ -97,6 +105,7 @@ def test_latency_validation_accepts_valid_boundary_values() -> None:
 def test_rejected_mutation_preserves_measurements(
     operation: Callable[[LatencyDataset], object],
 ) -> None:
+    """Preserva as medições quando uma adição ou remoção é inválida."""
     dataset = LatencyDataset([100, 200])
 
     with pytest.raises(InvalidLatencyError) as error:
@@ -110,12 +119,16 @@ def test_rejected_mutation_preserves_measurements(
     "operation",
     (
         pytest.param(lambda dataset: dataset.contains(-1), id="contains"),
-        pytest.param(lambda dataset: dataset.count_occurrences(-1), id="count-occurrences"),
+        pytest.param(
+            lambda dataset: dataset.count_occurrences(-1),
+            id="count-occurrences",
+        ),
     ),
 )
 def test_queries_reject_invalid_latency(
     operation: Callable[[LatencyDataset], object],
 ) -> None:
+    """Rejeita latências inválidas nas consultas de existência e ocorrência."""
     dataset = LatencyDataset([100, 200])
 
     with pytest.raises(InvalidLatencyError) as error:
@@ -125,6 +138,7 @@ def test_queries_reject_invalid_latency(
 
 
 def test_removing_missing_latency_preserves_measurements() -> None:
+    """Mantém o dataset intacto ao tentar remover uma latência ausente."""
     dataset = LatencyDataset([100, 200])
 
     with pytest.raises(LatencyNotFoundError) as error:
@@ -135,6 +149,7 @@ def test_removing_missing_latency_preserves_measurements() -> None:
 
 
 def test_removing_only_measurement_preserves_dataset() -> None:
+    """Impede a remoção da única medição e preserva o dataset."""
     dataset = LatencyDataset([100])
 
     with pytest.raises(DatasetWouldBecomeEmptyError) as error:
@@ -157,6 +172,7 @@ def test_removing_only_measurement_preserves_dataset() -> None:
 def test_sample_dispersion_requires_two_measurements(
     operation: Callable[[LatencyDataset], object],
 ) -> None:
+    """Exige duas medições para variância e desvio-padrão amostrais."""
     dataset = LatencyDataset([100])
 
     with pytest.raises(InsufficientMeasurementsError) as error:
@@ -167,6 +183,7 @@ def test_sample_dispersion_requires_two_measurements(
 
 @pytest.mark.parametrize("invalid_percentile", INVALID_PERCENTILES)
 def test_rejects_each_invalid_percentile_category(invalid_percentile: Any) -> None:
+    """Rejeita percentis fora do intervalo ou com tipos e valores inválidos."""
     dataset = LatencyDataset([100, 200])
 
     with pytest.raises(InvalidPercentileError) as error:
@@ -182,14 +199,21 @@ def test_rejects_each_invalid_percentile_category(invalid_percentile: Any) -> No
         pytest.param(100, 200.0, id="upper-boundary"),
     ),
 )
-def test_percentile_accepts_inclusive_boundaries(percentile: int, expected: float) -> None:
+def test_percentile_accepts_inclusive_boundaries(
+    percentile: int,
+    expected: float,
+) -> None:
+    """Aceita os limites inclusivos de percentil zero e cem."""
     dataset = LatencyDataset([100, 200])
 
     assert dataset.percentile(percentile) == expected
 
 
 @pytest.mark.parametrize("invalid_threshold", INVALID_THRESHOLDS)
-def test_count_above_rejects_each_invalid_threshold_category(invalid_threshold: Any) -> None:
+def test_count_above_rejects_each_invalid_threshold_category(
+    invalid_threshold: Any,
+) -> None:
+    """Rejeita cada categoria de limite inválido na contagem superior."""
     dataset = LatencyDataset([0, 100])
 
     with pytest.raises(InvalidThresholdError) as error:
@@ -201,13 +225,20 @@ def test_count_above_rejects_each_invalid_threshold_category(invalid_threshold: 
 @pytest.mark.parametrize(
     "operation",
     (
-        pytest.param(lambda dataset: dataset.proportion_above(-1), id="proportion-above"),
-        pytest.param(lambda dataset: dataset.count_at_or_below(-1), id="count-at-or-below"),
+        pytest.param(
+            lambda dataset: dataset.proportion_above(-1),
+            id="proportion-above",
+        ),
+        pytest.param(
+            lambda dataset: dataset.count_at_or_below(-1),
+            id="count-at-or-below",
+        ),
     ),
 )
 def test_derived_threshold_queries_propagate_validation_error(
     operation: Callable[[LatencyDataset], object],
 ) -> None:
+    """Propaga a validação de limite nas consultas derivadas."""
     dataset = LatencyDataset([0, 100])
 
     with pytest.raises(InvalidThresholdError) as error:
@@ -217,6 +248,7 @@ def test_derived_threshold_queries_propagate_validation_error(
 
 
 def test_threshold_validation_accepts_zero_and_uses_strict_comparison() -> None:
+    """Aceita limite zero e mantém a semântica estrita de `acima de`."""
     dataset = LatencyDataset([0, 100])
 
     assert dataset.count_above(0) == 1
@@ -225,6 +257,7 @@ def test_threshold_validation_accepts_zero_and_uses_strict_comparison() -> None:
 
 
 def test_all_specific_errors_inherit_from_domain_error() -> None:
+    """Garante que todos os erros específicos possam ser tratados como DomainError."""
     error_types = (
         DatasetWouldBecomeEmptyError,
         EmptyLatencyDatasetError,
