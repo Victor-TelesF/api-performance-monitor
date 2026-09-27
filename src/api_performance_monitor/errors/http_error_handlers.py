@@ -5,6 +5,7 @@ As rotas podem deixar essas exceções propagarem sem repetir ``try/except``.
 """
 
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from ..domain.exceptions import (
@@ -13,6 +14,16 @@ from ..domain.exceptions import (
     LatencyNotFoundError,
 )
 from .errors import DatasetNotFoundError
+
+
+async def handle_request_validation_error(
+    _request: Request, _error: RequestValidationError
+) -> JSONResponse:
+    """Normaliza erros estruturais de entrada no contrato de erro da API."""
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content={"detail": "Dados de entrada inválidos."},
+    )
 
 
 async def handle_dataset_not_found(
@@ -45,8 +56,12 @@ async def handle_domain_error(_request: Request, error: DomainError) -> JSONResp
 def register_exception_handlers(app: FastAPI) -> None:
     """Registra os handlers de erro da aplicação e devolve ``None``.
 
-    O FastAPI continua cuidando de seus erros HTTP e de validação de entrada;
-    esta função trata apenas os erros próprios do projeto.
+    Erros de validação do FastAPI e erros próprios do projeto passam a usar
+    o mesmo formato de resposta, com uma ``str`` no campo ``detail``.
     """
+    app.add_exception_handler(
+        RequestValidationError,
+        handle_request_validation_error,
+    )
     app.add_exception_handler(DatasetNotFoundError, handle_dataset_not_found)
     app.add_exception_handler(DomainError, handle_domain_error)

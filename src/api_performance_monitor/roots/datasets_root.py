@@ -11,6 +11,7 @@ from ..mapper.latency_mapper import (
     update_model_from_domain,
 )
 from ..models.datasets_models import LatencyDatasetModel
+from ..schemas.error_schema import ErrorResponseSchema
 from ..schemas.latency_dataset_schema import (
     AddLatencyMeasurementSchema,
     CreateLatencyDatasetSchema,
@@ -18,7 +19,15 @@ from ..schemas.latency_dataset_schema import (
 )
 
 
-router = APIRouter(prefix="/Datasets")
+router = APIRouter(
+    prefix="/Datasets",
+    responses={
+        422: {
+            "model": ErrorResponseSchema,
+            "description": "Dados de entrada ou regra de negócio inválidos.",
+        }
+    },
+)
 
 
 @router.post(
