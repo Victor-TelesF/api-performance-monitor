@@ -100,6 +100,24 @@ resposta, evitando uma consulta adicional durante os testes.
 | `GET` | `/Datasets/measurements/contains/{dataset_id}` | Verificar se uma medição existe. |
 | `GET` | `/Datasets/measurements/occurrences/{dataset_id}` | Contar ocorrências de uma medição. |
 
+## Contrato de erros
+
+Os erros conhecidos da API usam o mesmo formato de resposta:
+
+```json
+{
+  "detail": "Descrição do erro."
+}
+```
+
+- `404 Not Found`: o dataset ou a medição solicitada não existe;
+- `409 Conflict`: a operação deixaria o dataset sem medições;
+- `422 Unprocessable Content`: os dados de entrada ou uma regra de negócio são
+  inválidos.
+
+O schema dessa resposta também aparece no OpenAPI e pode ser consultado pelo
+Swagger UI.
+
 ## Documentação de desenvolvimento
 
 - [Guia do domínio e das visualizações](docs/domain-guide.md)
@@ -130,6 +148,7 @@ resposta, evitando uma consulta adicional durante os testes.
 ```bash
 docker compose logs -f api
 docker compose exec api uv run --locked --no-sync alembic current
+uv run --locked pytest -q
 docker compose down
 ```
 
