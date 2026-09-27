@@ -21,11 +21,12 @@ from api_performance_monitor.models.datasets_models import (
 
 @pytest.fixture()
 def db_session():
+    """Fornece uma sessão SQLite isolada com todas as tabelas criadas."""
     engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = TestingSessionLocal()
@@ -38,13 +39,18 @@ def db_session():
 
 @pytest.fixture()
 def client(db_session):
+    """Fornece um cliente HTTP cuja dependência de banco usa a sessão de teste."""
+
     def override_get_db():
+        """Substitui a sessão da aplicação pela sessão SQLite do teste."""
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        yield test_client
-    app.dependency_overrides.clear()
+    try:
+        with TestClient(app) as test_client:
+            yield test_client
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture()
@@ -64,7 +70,7 @@ def existing_dataset(db_session):
 
 @pytest.fixture()
 def single_measurement_dataset(db_session):
-    """Dataset persistido com uma única medição, para o teste de remoção da última (409)."""
+    """Cria um dataset com uma medição para testar a remoção proibida."""
     model = LatencyDatasetModel(
         measurements=[LatencyMeasurementModel(position=1, latency_ms=100.0)]
     )
