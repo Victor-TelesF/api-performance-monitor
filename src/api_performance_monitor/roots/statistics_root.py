@@ -12,19 +12,23 @@ from ..schemas.latency_dataset_schema import (
 from ..services.latency_dataset_service import LatencyDatasetService
 
 router = APIRouter(
-    prefix="/statistics",
+    prefix="/datasets/{dataset_id}/statistics",
     tags=["Estatísticas"],
     responses={
         422: {
             "model": ErrorResponseSchema,
             "description": "Dados de entrada ou regra de negócio inválidos.",
-        }
+        },
+        404: {
+            "model": ErrorResponseSchema,
+            "description": "Dataset não encontrado.",
+        },
     },
 )
 
 
 @router.get(
-    "/count/{dataset_id}",
+    "/count",
     summary="Consultar quantidade de medições",
     response_model=CountStatisticResponseSchema,
 )
@@ -37,7 +41,7 @@ def statistics_count(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/total/{dataset_id}",
+    "/total",
     summary="Consultar soma das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -50,7 +54,7 @@ def statistics_total(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/minimum/{dataset_id}",
+    "/minimum",
     summary="Consultar menor latência",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -63,7 +67,7 @@ def statistics_minimum(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/maximum/{dataset_id}",
+    "/maximum",
     summary="Consultar maior latência",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -76,7 +80,7 @@ def statistics_maximum(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/amplitude/{dataset_id}",
+    "/amplitude",
     summary="Consultar amplitude das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -89,7 +93,7 @@ def statistics_amplitude(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/mean/{dataset_id}",
+    "/mean",
     summary="Consultar média das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -102,7 +106,7 @@ def statistics_mean(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/median/{dataset_id}",
+    "/median",
     summary="Consultar mediana das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -115,7 +119,7 @@ def statistics_median(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/mode/{dataset_id}",
+    "/mode",
     summary="Consultar moda das latências",
     response_model=ValuesStatisticResponseSchema,
 )
@@ -128,7 +132,7 @@ def statistics_mode(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/variance/{dataset_id}",
+    "/variance",
     summary="Consultar variância das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -141,7 +145,7 @@ def statistics_variance(dataset_id: int, db: SessionDep, sample: bool = False):
 
 
 @router.get(
-    "/standard-deviation/{dataset_id}",
+    "/standard-deviation",
     summary="Consultar desvio padrão das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -156,7 +160,7 @@ def statistics_standard_deviation(
 
 
 @router.get(
-    "/first-quartile/{dataset_id}",
+    "/first-quartile",
     summary="Consultar primeiro quartil das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -169,7 +173,7 @@ def statistics_first_quartile(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/second-quartile/{dataset_id}",
+    "/second-quartile",
     summary="Consultar segundo quartil das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -182,7 +186,7 @@ def statistics_second_quartile(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/third-quartile/{dataset_id}",
+    "/third-quartile",
     summary="Consultar terceiro quartil das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -195,7 +199,7 @@ def statistics_third_quartile(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/interquartile-range/{dataset_id}",
+    "/interquartile-range",
     summary="Consultar intervalo interquartil das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -208,7 +212,7 @@ def statistics_interquartile_range(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/percentile/{dataset_id}",
+    "/percentile",
     summary="Consultar percentil das latências",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -221,7 +225,7 @@ def statistics_percentile(dataset_id: int, db: SessionDep, percent: float = 95):
 
 
 @router.get(
-    "/outliers/{dataset_id}",
+    "/outliers",
     summary="Consultar possíveis valores atípicos",
     response_model=ValuesStatisticResponseSchema,
 )
@@ -234,7 +238,7 @@ def statistics_outliers(dataset_id: int, db: SessionDep):
 
 
 @router.get(
-    "/count-above/{dataset_id}",
+    "/count-above",
     summary="Contar medições acima do limite",
     response_model=CountStatisticResponseSchema,
 )
@@ -247,7 +251,7 @@ def statistics_count_above(dataset_id: int, db: SessionDep, threshold_ms: float 
 
 
 @router.get(
-    "/proportion-above/{dataset_id}",
+    "/proportion-above",
     summary="Consultar proporção acima do limite",
     response_model=ScalarStatisticResponseSchema,
 )
@@ -262,7 +266,7 @@ def statistics_proportion_above(
 
 
 @router.get(
-    "/count-at-or-below/{dataset_id}",
+    "/count-at-or-below",
     summary="Contar medições até o limite",
     response_model=CountStatisticResponseSchema,
 )
