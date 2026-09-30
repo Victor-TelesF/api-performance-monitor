@@ -1,8 +1,17 @@
-from pydantic import BaseModel, ConfigDict
+from typing import Annotated
+from pydantic import BaseModel, ConfigDict, BeforeValidator
+
+
+def reject_boolean(value: object) -> object:
+    if isinstance(value, bool):
+        raise ValueError("Booleano não é uma latência.")
+    return value
+
+LatencyInput = Annotated[float, BeforeValidator(reject_boolean)]
 
 
 class CreateLatencyDatasetSchema(BaseModel):
-    latency_ms: list[float]
+    latency_ms: list[LatencyInput]
 
 
 class ResponseLatencyDatasetSchema(BaseModel):
