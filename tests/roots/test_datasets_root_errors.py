@@ -16,7 +16,7 @@ def test_create_dataset_with_empty_measurements_returns_422(
 ) -> None:
     """Retorna 422 ao criar um dataset sem nenhuma medição."""
     body = {"latency_ms": []}
-    response = client.post("/Datasets/datasets/create", json=body)
+    response = client.post("/datasets", json=body)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert response.json() == {
@@ -29,7 +29,7 @@ def test_create_dataset_with_negative_latency_returns_422(
 ) -> None:
     """Retorna 422 ao criar um dataset com uma latência negativa."""
     body = {"latency_ms": [-100]}
-    response = client.post("/Datasets/datasets/create", json=body)
+    response = client.post("/datasets", json=body)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
     assert response.json() == {
@@ -39,7 +39,7 @@ def test_create_dataset_with_negative_latency_returns_422(
 
 def test_get_dataset_details_with_unknown_id_returns_404(client: TestClient) -> None:
     """Retorna 404 ao consultar os detalhes de um dataset inexistente."""
-    response = client.get("/Datasets/datasets/details/163")
+    response = client.get("/datasets/163")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Dataset não encontrado."}
@@ -47,7 +47,7 @@ def test_get_dataset_details_with_unknown_id_returns_404(client: TestClient) -> 
 
 def test_delete_dataset_with_unknown_id_returns_404(client: TestClient) -> None:
     """Retorna 404 ao tentar excluir um dataset inexistente."""
-    response = client.delete("/Datasets/datasets/delete/165")
+    response = client.delete("/datasets/165")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Dataset não encontrado."}
@@ -56,7 +56,7 @@ def test_delete_dataset_with_unknown_id_returns_404(client: TestClient) -> None:
 def test_add_measurement_to_unknown_dataset_returns_404(client: TestClient) -> None:
     """Retorna 404 ao adicionar uma medição a um dataset inexistente."""
     body = {"latency_ms": 156.12}
-    response = client.post("/Datasets/measurements/add/564", json=body)
+    response = client.post("/datasets/564/measurements", json=body)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Dataset não encontrado."}
@@ -69,7 +69,7 @@ def test_add_measurement_with_negative_latency_returns_422(
     """Retorna 422 ao adicionar uma latência negativa a um dataset."""
     body = {"latency_ms": -153}
     response = client.post(
-        f"/Datasets/measurements/add/{existing_dataset.id}",
+        f"/datasets/{existing_dataset.id}/measurements",
         json=body,
     )
 
@@ -83,10 +83,7 @@ def test_remove_measurement_from_unknown_dataset_returns_404(
     client: TestClient,
 ) -> None:
     """Retorna 404 ao remover uma medição de um dataset inexistente."""
-    response = client.delete(
-        "/Datasets/measurements/remove/645",
-        params={"measurement": 153},
-    )
+    response = client.delete("/datasets/645/measurements/153")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Dataset não encontrado."}
@@ -96,17 +93,11 @@ def test_remove_measurement_not_found_returns_404(
     client: TestClient,
     existing_dataset: LatencyDatasetModel,
 ) -> None:
-    """Retorna 404 ao remover uma latência que não existe no dataset."""
-    measurement = 999.0
-    response = client.delete(
-        f"/Datasets/measurements/remove/{existing_dataset.id}",
-        params={"measurement": measurement},
-    )
+    """Retorna 404 ao remover uma medição inexistente no dataset."""
+    response = client.delete(f"/datasets/{existing_dataset.id}/measurements/999")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json() == {
-        "detail": f"A latência {measurement} ms não foi encontrada."
-    }
+    assert response.json() == {"detail": "Medição não encontrada."}
 
 
 def test_remove_last_measurement_returns_409(
@@ -114,36 +105,30 @@ def test_remove_last_measurement_returns_409(
     single_measurement_dataset: LatencyDatasetModel,
 ) -> None:
     """Retorna 409 quando a remoção deixaria o dataset vazio."""
+    measurement_id = single_measurement_dataset.measurements[0].id
     response = client.delete(
-        f"/Datasets/measurements/remove/{single_measurement_dataset.id}",
-        params={"measurement": 100.0},
+        f"/datasets/{single_measurement_dataset.id}/measurements/{measurement_id}"
     )
 
     assert response.status_code == status.HTTP_409_CONFLICT
     assert response.json() == {"detail": "A última medição não pode ser removida."}
 
 
-def test_measurement_contains_unknown_dataset_returns_404(
+def test_list_measurements_unknown_dataset_returns_404(
     client: TestClient,
 ) -> None:
-    """Retorna 404 ao procurar uma medição em um dataset inexistente."""
-    response = client.get(
-        "/Datasets/measurements/contains/45",
-        params={"measurement": 500},
-    )
+    """Retorna 404 ao listar medições de um dataset inexistente."""
+    response = client.get("/datasets/45/measurements", params={"latency_ms": 500})
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Dataset não encontrado."}
 
 
-def test_measurement_occurrences_unknown_dataset_returns_404(
+def test_get_measurement_unknown_dataset_returns_404(
     client: TestClient,
 ) -> None:
-    """Retorna 404 ao contar ocorrências em um dataset inexistente."""
-    response = client.get(
-        "/Datasets/measurements/occurrences/5",
-        params={"measurement": 100},
-    )
+    """Retorna 404 ao consultar medição de um dataset inexistente."""
+    response = client.get("/datasets/5/measurements/100")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Dataset não encontrado."}

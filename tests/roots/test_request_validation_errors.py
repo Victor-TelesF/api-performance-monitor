@@ -21,7 +21,7 @@ def test_request_validation_handler_is_registered() -> None:
 def test_openapi_documents_standard_422_schema() -> None:
     """Confirma que o OpenAPI referencia o schema comum nas respostas 422."""
     operation = app.openapi()["paths"][
-        "/Datasets/measurements/contains/{dataset_id}"
+        "/datasets/{dataset_id}/measurements"
     ]["get"]
 
     schema = operation["responses"]["422"]["content"]["application/json"]["schema"]
@@ -32,8 +32,8 @@ def test_openapi_documents_standard_422_schema() -> None:
 def test_invalid_query_returns_standard_422_response(client: TestClient) -> None:
     """Retorna o contrato comum de 422 quando um query param não é numérico."""
     response = client.get(
-        "/Datasets/measurements/contains/1",
-        params={"measurement": "invalid"},
+        "/datasets/1/measurements",
+        params={"latency_ms": "invalid"},
     )
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

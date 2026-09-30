@@ -14,3 +14,10 @@ class DatasetNotFoundError(Exception):
         if dataset_id is not None:
             detail = f"Dataset {dataset_id} não encontrado."
         super().__init__(detail)
+
+
+class MeasurementNotFoundError(Exception):
+    """Indica que a medição não pertence ao dataset solicitado."""
+
+    def __init__(self) -> None:
+        super().__init__("Medição não encontrada.")

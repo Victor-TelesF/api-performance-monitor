@@ -18,7 +18,7 @@ tags_metadata = [
     },
     {
         "name": "Medições",
-        "description": "Adição, remoção e consulta das medições de um dataset.",
+        "description": "Criação, listagem, filtro, consulta e exclusão das medições de um dataset.",
     },
     {
         "name": "Estatísticas",

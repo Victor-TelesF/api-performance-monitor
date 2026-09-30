@@ -13,7 +13,7 @@ from ..domain.exceptions import (
     DomainError,
     LatencyNotFoundError,
 )
-from .errors import DatasetNotFoundError
+from .errors import DatasetNotFoundError, MeasurementNotFoundError
 
 
 async def handle_request_validation_error(
@@ -27,9 +27,9 @@ async def handle_request_validation_error(
 
 
 async def handle_dataset_not_found(
-    _request: Request, error: DatasetNotFoundError
+    _request: Request, error: DatasetNotFoundError | MeasurementNotFoundError
 ) -> JSONResponse:
-    """Devolve HTTP 404 com a mensagem de um dataset ausente em ``detail``."""
+    """Devolve HTTP 404 para um dataset ou uma medição ausente."""
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
         content={"detail": str(error)},
@@ -64,4 +64,5 @@ def register_exception_handlers(app: FastAPI) -> None:
         handle_request_validation_error,
     )
     app.add_exception_handler(DatasetNotFoundError, handle_dataset_not_found)
+    app.add_exception_handler(MeasurementNotFoundError, handle_dataset_not_found)
     app.add_exception_handler(DomainError, handle_domain_error)

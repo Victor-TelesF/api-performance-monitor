@@ -21,6 +21,14 @@ class ResponseLatencyDatasetSchema(BaseModel):
 
 
 class LatencyMeasurementSchema(BaseModel):
+    latency_ms: LatencyInput
+
+
+class ResponseLatencyMeasurementSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    dataset_id: int
+    position: int
     latency_ms: float
 
 
