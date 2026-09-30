@@ -87,45 +87,53 @@ Para conferir o funcionamento, crie um dataset no Swagger com:
 }
 ```
 
-As operações de adicionar e remover devolvem o dataset atualizado na própria
-resposta, evitando uma consulta adicional durante os testes.
+`POST /datasets` devolve `201 Created`, o dataset criado e o cabeçalho
+`Location` para consultá-lo. Para adicionar uma medição, envie
+`{"latency_ms": 130}` a `POST /datasets/{dataset_id}/measurements`; a resposta
+também devolve `201 Created`, a medição com seu `id` e o respectivo `Location`.
+Liste as medições para descobrir seus IDs. A consulta opcional
+`?latency_ms=100` devolve apenas as ocorrências desse valor; uma lista vazia
+indica ausência e seu tamanho informa a quantidade de ocorrências. Exclua
+uma medição pelo seu ID. Ambas as exclusões devolvem `204 No Content`.
+O campo `position` preserva a ordem de inserção e pode apresentar lacunas
+após exclusões.
 
 ## Endpoints atuais
 
 | Método | Caminho | Finalidade |
 | --- | --- | --- |
-| `POST` | `/Datasets/datasets/create` | Criar um dataset. |
-| `GET` | `/Datasets/datasets/list` | Listar todos os datasets. |
-| `GET` | `/Datasets/datasets/details/{dataset_id}` | Consultar um dataset. |
-| `DELETE` | `/Datasets/datasets/delete/{dataset_id}` | Excluir um dataset e suas medições. |
-| `POST` | `/Datasets/measurements/add/{dataset_id}` | Adicionar uma medição. |
-| `DELETE` | `/Datasets/measurements/remove/{dataset_id}` | Remover a primeira ocorrência de uma medição. |
-| `GET` | `/Datasets/measurements/contains/{dataset_id}` | Verificar se uma medição existe. |
-| `GET` | `/Datasets/measurements/occurrences/{dataset_id}` | Contar ocorrências de uma medição. |
+| `POST` | `/datasets` | Criar um dataset. |
+| `GET` | `/datasets` | Listar todos os datasets. |
+| `GET` | `/datasets/{dataset_id}` | Consultar um dataset. |
+| `DELETE` | `/datasets/{dataset_id}` | Excluir um dataset e suas medições. |
+| `POST` | `/datasets/{dataset_id}/measurements` | Adicionar uma medição. |
+| `GET` | `/datasets/{dataset_id}/measurements` | Listar medições, opcionalmente filtradas por `latency_ms`. |
+| `GET` | `/datasets/{dataset_id}/measurements/{measurement_id}` | Consultar uma medição. |
+| `DELETE` | `/datasets/{dataset_id}/measurements/{measurement_id}` | Remover a medição identificada pelo ID. |
 
 ### Estatísticas
 
 | Método | Caminho | Finalidade |
 | --- | --- | --- |
-| `GET` | `/statistics/count/{dataset_id}` | Consultar a quantidade de medições. |
-| `GET` | `/statistics/total/{dataset_id}` | Consultar a soma das latências. |
-| `GET` | `/statistics/minimum/{dataset_id}` | Consultar a menor latência. |
-| `GET` | `/statistics/maximum/{dataset_id}` | Consultar a maior latência. |
-| `GET` | `/statistics/amplitude/{dataset_id}` | Consultar a diferença entre o maior e o menor valor. |
-| `GET` | `/statistics/mean/{dataset_id}` | Consultar a média aritmética. |
-| `GET` | `/statistics/median/{dataset_id}` | Consultar a mediana. |
-| `GET` | `/statistics/mode/{dataset_id}` | Consultar as modas do dataset. |
-| `GET` | `/statistics/variance/{dataset_id}` | Consultar a variância populacional ou amostral. |
-| `GET` | `/statistics/standard-deviation/{dataset_id}` | Consultar o desvio padrão populacional ou amostral. |
-| `GET` | `/statistics/first-quartile/{dataset_id}` | Consultar o primeiro quartil. |
-| `GET` | `/statistics/second-quartile/{dataset_id}` | Consultar o segundo quartil. |
-| `GET` | `/statistics/third-quartile/{dataset_id}` | Consultar o terceiro quartil. |
-| `GET` | `/statistics/interquartile-range/{dataset_id}` | Consultar o intervalo interquartil. |
-| `GET` | `/statistics/percentile/{dataset_id}` | Consultar um percentil. |
-| `GET` | `/statistics/outliers/{dataset_id}` | Consultar possíveis valores atípicos. |
-| `GET` | `/statistics/count-above/{dataset_id}` | Contar medições acima de um limite. |
-| `GET` | `/statistics/proportion-above/{dataset_id}` | Consultar a proporção acima de um limite. |
-| `GET` | `/statistics/count-at-or-below/{dataset_id}` | Contar medições menores ou iguais a um limite. |
+| `GET` | `/datasets/{dataset_id}/statistics/count` | Consultar a quantidade de medições. |
+| `GET` | `/datasets/{dataset_id}/statistics/total` | Consultar a soma das latências. |
+| `GET` | `/datasets/{dataset_id}/statistics/minimum` | Consultar a menor latência. |
+| `GET` | `/datasets/{dataset_id}/statistics/maximum` | Consultar a maior latência. |
+| `GET` | `/datasets/{dataset_id}/statistics/amplitude` | Consultar a diferença entre o maior e o menor valor. |
+| `GET` | `/datasets/{dataset_id}/statistics/mean` | Consultar a média aritmética. |
+| `GET` | `/datasets/{dataset_id}/statistics/median` | Consultar a mediana. |
+| `GET` | `/datasets/{dataset_id}/statistics/mode` | Consultar as modas do dataset. |
+| `GET` | `/datasets/{dataset_id}/statistics/variance` | Consultar a variância populacional ou amostral. |
+| `GET` | `/datasets/{dataset_id}/statistics/standard-deviation` | Consultar o desvio padrão populacional ou amostral. |
+| `GET` | `/datasets/{dataset_id}/statistics/first-quartile` | Consultar o primeiro quartil. |
+| `GET` | `/datasets/{dataset_id}/statistics/second-quartile` | Consultar o segundo quartil. |
+| `GET` | `/datasets/{dataset_id}/statistics/third-quartile` | Consultar o terceiro quartil. |
+| `GET` | `/datasets/{dataset_id}/statistics/interquartile-range` | Consultar o intervalo interquartil. |
+| `GET` | `/datasets/{dataset_id}/statistics/percentile` | Consultar um percentil. |
+| `GET` | `/datasets/{dataset_id}/statistics/outliers` | Consultar possíveis valores atípicos. |
+| `GET` | `/datasets/{dataset_id}/statistics/count-above` | Contar medições acima de um limite. |
+| `GET` | `/datasets/{dataset_id}/statistics/proportion-above` | Consultar a proporção acima de um limite. |
+| `GET` | `/datasets/{dataset_id}/statistics/count-at-or-below` | Contar medições menores ou iguais a um limite. |
 
 As rotas de variância e desvio padrão aceitam o parâmetro de consulta
 `sample`, com valor padrão `false`. A rota de percentil usa `percent=95` por
@@ -151,6 +159,7 @@ Swagger UI.
 
 ## Documentação de desenvolvimento
 
+- [Plano detalhado da primeira versão](docs/plano-v1.md)
 - [Guia do domínio e das visualizações](docs/domain-guide.md)
 - [Banco de dados e migrações](docs/database-and-migrations.md)
 - [Índice da documentação](docs/README.md)
