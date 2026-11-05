@@ -26,32 +26,46 @@ INVALID_THRESHOLD_MESSAGE = "O limite deve ser um número real, finito e não ne
 INVALID_LATENCIES = (
     pytest.param(-1, id="negative"),
     pytest.param(True, id="boolean"),
+    pytest.param(False, id="false-boolean"),
+    pytest.param(None, id="none"),
+    pytest.param(1 + 2j, id="complex"),
     pytest.param("100", id="string"),
     pytest.param(float("nan"), id="float-nan"),
     pytest.param(Decimal("NaN"), id="decimal-nan"),
+    pytest.param(Decimal("sNaN"), id="decimal-signaling-nan"),
     pytest.param(float("inf"), id="positive-infinity"),
     pytest.param(float("-inf"), id="negative-infinity"),
     pytest.param(Decimal("-1e-999999"), id="decimal-negative-rounded-to-zero"),
     pytest.param(Decimal("1e999999"), id="decimal-overflow"),
+    pytest.param(10**1000, id="integer-overflow"),
 )
 
 INVALID_PERCENTILES = (
     pytest.param(-1, id="below-zero"),
     pytest.param(101, id="above-one-hundred"),
     pytest.param(True, id="boolean"),
+    pytest.param(None, id="none"),
     pytest.param("95", id="string"),
     pytest.param(float("nan"), id="float-nan"),
     pytest.param(Decimal("NaN"), id="decimal-nan"),
     pytest.param(float("inf"), id="infinity"),
     pytest.param(Decimal("100.00000000000000000001"), id="decimal-above-one-hundred"),
+    pytest.param(Decimal("-1e-999999"), id="decimal-below-zero"),
+    pytest.param(Decimal("sNaN"), id="decimal-signaling-nan"),
+    pytest.param(float("-inf"), id="negative-infinity"),
 )
 
 INVALID_THRESHOLDS = (
     pytest.param(-1, id="negative"),
     pytest.param(False, id="boolean"),
+    pytest.param(None, id="none"),
     pytest.param("100", id="string"),
     pytest.param(float("nan"), id="nan"),
     pytest.param(float("inf"), id="infinity"),
+    pytest.param(float("-inf"), id="negative-infinity"),
+    pytest.param(Decimal("NaN"), id="decimal-nan"),
+    pytest.param(Decimal("-1e-999999"), id="decimal-negative-rounded-to-zero"),
+    pytest.param(10**1000, id="integer-overflow"),
 )
 
 
@@ -98,18 +112,19 @@ def test_latency_validation_accepts_valid_boundary_values() -> None:
 @pytest.mark.parametrize(
     "operation",
     (
-        pytest.param(lambda dataset: dataset.add(-1), id="add"),
-        pytest.param(lambda dataset: dataset.remove(-1), id="remove"),
+        pytest.param(lambda dataset, value: dataset.add(value), id="add"),
+        pytest.param(lambda dataset, value: dataset.remove(value), id="remove"),
     ),
 )
+@pytest.mark.parametrize("invalid_latency", INVALID_LATENCIES)
 def test_rejected_mutation_preserves_measurements(
-    operation: Callable[[LatencyDataset], object],
+    operation: Callable[[LatencyDataset, Any], object], invalid_latency: Any,
 ) -> None:
     """Preserva as medições quando uma adição ou remoção é inválida."""
     dataset = LatencyDataset([100, 200])
 
     with pytest.raises(InvalidLatencyError) as error:
-        operation(dataset)
+        operation(dataset, invalid_latency)
 
     assert str(error.value) == INVALID_LATENCY_MESSAGE
     assert dataset.measurements == (100.0, 200.0)
@@ -118,21 +133,22 @@ def test_rejected_mutation_preserves_measurements(
 @pytest.mark.parametrize(
     "operation",
     (
-        pytest.param(lambda dataset: dataset.contains(-1), id="contains"),
+        pytest.param(lambda dataset, value: dataset.contains(value), id="contains"),
         pytest.param(
-            lambda dataset: dataset.count_occurrences(-1),
+            lambda dataset, value: dataset.count_occurrences(value),
             id="count-occurrences",
         ),
     ),
 )
+@pytest.mark.parametrize("invalid_latency", INVALID_LATENCIES)
 def test_queries_reject_invalid_latency(
-    operation: Callable[[LatencyDataset], object],
+    operation: Callable[[LatencyDataset, Any], object], invalid_latency: Any,
 ) -> None:
     """Rejeita latências inválidas nas consultas de existência e ocorrência."""
     dataset = LatencyDataset([100, 200])
 
     with pytest.raises(InvalidLatencyError) as error:
-        operation(dataset)
+        operation(dataset, invalid_latency)
 
     assert str(error.value) == INVALID_LATENCY_MESSAGE
 
@@ -226,23 +242,24 @@ def test_count_above_rejects_each_invalid_threshold_category(
     "operation",
     (
         pytest.param(
-            lambda dataset: dataset.proportion_above(-1),
+            lambda dataset, value: dataset.proportion_above(value),
             id="proportion-above",
         ),
         pytest.param(
-            lambda dataset: dataset.count_at_or_below(-1),
+            lambda dataset, value: dataset.count_at_or_below(value),
             id="count-at-or-below",
         ),
     ),
 )
+@pytest.mark.parametrize("invalid_threshold", INVALID_THRESHOLDS)
 def test_derived_threshold_queries_propagate_validation_error(
-    operation: Callable[[LatencyDataset], object],
+    operation: Callable[[LatencyDataset, Any], object], invalid_threshold: Any,
 ) -> None:
     """Propaga a validação de limite nas consultas derivadas."""
     dataset = LatencyDataset([0, 100])
 
     with pytest.raises(InvalidThresholdError) as error:
-        operation(dataset)
+        operation(dataset, invalid_threshold)
 
     assert str(error.value) == INVALID_THRESHOLD_MESSAGE
 
