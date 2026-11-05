@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from ..database import SessionDep
 from ..schemas.error_schema import ErrorResponseSchema
+from ..schemas.path_parameters import ResourceId
 from ..schemas.latency_dataset_schema import (
     CountStatisticResponseSchema,
     ScalarStatisticResponseSchema,
@@ -32,7 +33,7 @@ router = APIRouter(
     summary="Consultar quantidade de medições",
     response_model=CountStatisticResponseSchema,
 )
-def statistics_count(dataset_id: int, db: SessionDep):
+def statistics_count(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     count = dataset.count()
@@ -45,7 +46,7 @@ def statistics_count(dataset_id: int, db: SessionDep):
     summary="Consultar soma das latências",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_total(dataset_id: int, db: SessionDep):
+def statistics_total(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     total_sum = dataset.total()
@@ -58,7 +59,7 @@ def statistics_total(dataset_id: int, db: SessionDep):
     summary="Consultar menor latência",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_minimum(dataset_id: int, db: SessionDep):
+def statistics_minimum(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     minimum = dataset.minimum()
@@ -71,7 +72,7 @@ def statistics_minimum(dataset_id: int, db: SessionDep):
     summary="Consultar maior latência",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_maximum(dataset_id: int, db: SessionDep):
+def statistics_maximum(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     maximum = dataset.maximum()
@@ -84,7 +85,7 @@ def statistics_maximum(dataset_id: int, db: SessionDep):
     summary="Consultar amplitude das latências",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_amplitude(dataset_id: int, db: SessionDep):
+def statistics_amplitude(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     amplitude = dataset.amplitude()
@@ -97,7 +98,7 @@ def statistics_amplitude(dataset_id: int, db: SessionDep):
     summary="Consultar média das latências",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_mean(dataset_id: int, db: SessionDep):
+def statistics_mean(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     mean = dataset.mean()
@@ -110,7 +111,7 @@ def statistics_mean(dataset_id: int, db: SessionDep):
     summary="Consultar mediana das latências",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_median(dataset_id: int, db: SessionDep):
+def statistics_median(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     median = dataset.median()
@@ -123,7 +124,7 @@ def statistics_median(dataset_id: int, db: SessionDep):
     summary="Consultar moda das latências",
     response_model=ValuesStatisticResponseSchema,
 )
-def statistics_mode(dataset_id: int, db: SessionDep):
+def statistics_mode(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     mode = dataset.mode()
@@ -136,7 +137,7 @@ def statistics_mode(dataset_id: int, db: SessionDep):
     summary="Consultar variância das latências",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_variance(dataset_id: int, db: SessionDep, sample: bool = False):
+def statistics_variance(dataset_id: ResourceId, db: SessionDep, sample: bool = False):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     variance = dataset.variance(sample=sample)
@@ -150,7 +151,7 @@ def statistics_variance(dataset_id: int, db: SessionDep, sample: bool = False):
     response_model=ScalarStatisticResponseSchema,
 )
 def statistics_standard_deviation(
-    dataset_id: int, db: SessionDep, sample: bool = False
+    dataset_id: ResourceId, db: SessionDep, sample: bool = False
 ):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
@@ -164,7 +165,7 @@ def statistics_standard_deviation(
     summary="Consultar primeiro quartil das latências",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_first_quartile(dataset_id: int, db: SessionDep):
+def statistics_first_quartile(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     first_quartile = dataset.first_quartile()
@@ -177,7 +178,7 @@ def statistics_first_quartile(dataset_id: int, db: SessionDep):
     summary="Consultar segundo quartil das latências",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_second_quartile(dataset_id: int, db: SessionDep):
+def statistics_second_quartile(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     second_quartile = dataset.second_quartile()
@@ -190,7 +191,7 @@ def statistics_second_quartile(dataset_id: int, db: SessionDep):
     summary="Consultar terceiro quartil das latências",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_third_quartile(dataset_id: int, db: SessionDep):
+def statistics_third_quartile(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     third_quartile = dataset.third_quartile()
@@ -203,7 +204,7 @@ def statistics_third_quartile(dataset_id: int, db: SessionDep):
     summary="Consultar intervalo interquartil das latências",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_interquartile_range(dataset_id: int, db: SessionDep):
+def statistics_interquartile_range(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     interquartile_range = dataset.interquartile_range()
@@ -216,7 +217,7 @@ def statistics_interquartile_range(dataset_id: int, db: SessionDep):
     summary="Consultar percentil das latências",
     response_model=ScalarStatisticResponseSchema,
 )
-def statistics_percentile(dataset_id: int, db: SessionDep, percent: float = 95):
+def statistics_percentile(dataset_id: ResourceId, db: SessionDep, percent: float = 95):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     percentile = dataset.percentile(percent)
@@ -229,7 +230,7 @@ def statistics_percentile(dataset_id: int, db: SessionDep, percent: float = 95):
     summary="Consultar possíveis valores atípicos",
     response_model=ValuesStatisticResponseSchema,
 )
-def statistics_outliers(dataset_id: int, db: SessionDep):
+def statistics_outliers(dataset_id: ResourceId, db: SessionDep):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     outliers = dataset.outliers()
@@ -242,7 +243,7 @@ def statistics_outliers(dataset_id: int, db: SessionDep):
     summary="Contar medições acima do limite",
     response_model=CountStatisticResponseSchema,
 )
-def statistics_count_above(dataset_id: int, db: SessionDep, threshold_ms: float = 120):
+def statistics_count_above(dataset_id: ResourceId, db: SessionDep, threshold_ms: float = 120):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
     count_above = dataset.count_above(threshold_ms)
@@ -256,7 +257,7 @@ def statistics_count_above(dataset_id: int, db: SessionDep, threshold_ms: float 
     response_model=ScalarStatisticResponseSchema,
 )
 def statistics_proportion_above(
-    dataset_id: int, db: SessionDep, threshold_ms: float = 120
+    dataset_id: ResourceId, db: SessionDep, threshold_ms: float = 120
 ):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)
@@ -271,7 +272,7 @@ def statistics_proportion_above(
     response_model=CountStatisticResponseSchema,
 )
 def statistics_count_at_or_below(
-    dataset_id: int, db: SessionDep, threshold_ms: float = 120
+    dataset_id: ResourceId, db: SessionDep, threshold_ms: float = 120
 ):
     service = LatencyDatasetService(db)
     dataset = service.get_domain(dataset_id)

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request, Response, status
 
 from ..database import SessionDep
 from ..schemas.error_schema import ErrorResponseSchema
+from ..schemas.path_parameters import ResourceId
 from ..schemas.latency_dataset_schema import (
     CreateLatencyDatasetSchema,
     LatencyMeasurementSchema,
@@ -64,7 +65,7 @@ def list_datasets(db: SessionDep):
     response_model=ResponseLatencyDatasetSchema,
     responses=NOT_FOUND,
 )
-def get_dataset(dataset_id: int, db: SessionDep):
+def get_dataset(dataset_id: ResourceId, db: SessionDep):
     return LatencyDatasetService(db).get_dataset(dataset_id)
 
 
@@ -75,7 +76,7 @@ def get_dataset(dataset_id: int, db: SessionDep):
     status_code=status.HTTP_204_NO_CONTENT,
     responses=NOT_FOUND,
 )
-def delete_dataset(dataset_id: int, db: SessionDep) -> None:
+def delete_dataset(dataset_id: ResourceId, db: SessionDep) -> None:
     LatencyDatasetService(db).delete_dataset(dataset_id)
 
 
@@ -88,7 +89,7 @@ def delete_dataset(dataset_id: int, db: SessionDep) -> None:
     responses=NOT_FOUND,
 )
 def add_measurement(
-    dataset_id: int,
+    dataset_id: ResourceId,
     measurement: LatencyMeasurementSchema,
     db: SessionDep,
     request: Request,
@@ -112,7 +113,7 @@ def add_measurement(
     response_model=list[ResponseLatencyMeasurementSchema],
     responses=NOT_FOUND,
 )
-def list_measurements(dataset_id: int, db: SessionDep, latency_ms: float | None = None):
+def list_measurements(dataset_id: ResourceId, db: SessionDep, latency_ms: float | None = None):
     return LatencyDatasetService(db).list_measurements(dataset_id, latency_ms)
 
 
@@ -123,7 +124,7 @@ def list_measurements(dataset_id: int, db: SessionDep, latency_ms: float | None 
     response_model=ResponseLatencyMeasurementSchema,
     responses=NOT_FOUND,
 )
-def get_measurement(dataset_id: int, measurement_id: int, db: SessionDep):
+def get_measurement(dataset_id: ResourceId, measurement_id: ResourceId, db: SessionDep):
     return LatencyDatasetService(db).get_measurement(dataset_id, measurement_id)
 
 
@@ -140,5 +141,5 @@ def get_measurement(dataset_id: int, measurement_id: int, db: SessionDep):
         },
     },
 )
-def remove_measurement(dataset_id: int, measurement_id: int, db: SessionDep) -> None:
+def remove_measurement(dataset_id: ResourceId, measurement_id: ResourceId, db: SessionDep) -> None:
     LatencyDatasetService(db).remove_measurement(dataset_id, measurement_id)
