@@ -18,6 +18,9 @@ from api_performance_monitor.visualization import create_latency_histogram
         pytest.param(False, id="false-boolean"),
         pytest.param(1.5, id="float"),
         pytest.param("10", id="string"),
+        pytest.param(float("nan"), id="nan"),
+        pytest.param(float("inf"), id="infinity"),
+        pytest.param([], id="list"),
     ),
 )
 def test_histogram_rejects_invalid_number_of_bins(invalid_bins: Any) -> None:
