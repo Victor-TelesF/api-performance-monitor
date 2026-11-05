@@ -13,9 +13,14 @@ def figure_to_png(figure: Figure) -> BytesIO:
     para que ``read()`` funcione logo após a conversão.
 
     A função não fecha a ``Figure`` recebida. Quem usa o buffer deve fechá-lo
-    quando terminar; por exemplo, com ``buffer.close()``.
+    quando terminar; por exemplo, com ``buffer.close()``. Se a renderização
+    falhar, fecha o buffer e propaga a exceção original.
     """
     buffer = BytesIO()
-    figure.savefig(buffer, format="png")
-    buffer.seek(0)
+    try:
+        figure.savefig(buffer, format="png")
+        buffer.seek(0)
+    except BaseException:
+        buffer.close()
+        raise
     return buffer
