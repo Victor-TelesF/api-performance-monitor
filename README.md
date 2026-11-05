@@ -6,8 +6,8 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
 Backend para armazenar e analisar conjuntos de medições de latência. A API HTTP
-gerencia datasets e suas medições e expõe consultas estatísticas; o domínio
-isolado concentra os cálculos e as visualizações usados pelo projeto.
+gerencia datasets e suas medições e expõe consultas estatísticas e gráficos PNG.
+O domínio isolado concentra os cálculos e as visualizações usados pelo projeto.
 
 > **Status:** em desenvolvimento. A versão atual trabalha com datasets de
 > latência informados pelo usuário; a coleta automática de APIs externas ainda
@@ -20,6 +20,7 @@ isolado concentra os cálculos e as visualizações usados pelo projeto.
   - adicionar e remover medições preservando sua ordem;
   - consultar a existência e a quantidade de ocorrências de uma latência;
   - calcular tendência central, dispersão, percentis, limites e outliers;
+  - consultar os cinco gráficos de latência em PNG;
   - documentar e testar as operações pelo Swagger UI;
 - domínio Python para:
   - validar valores negativos, booleanos, `NaN` e infinitos;
@@ -78,6 +79,20 @@ Depois da inicialização:
 - Swagger UI: <http://localhost:8000/docs>
 - ReDoc: <http://localhost:8000/redoc>
 - OpenAPI: <http://localhost:8000/openapi.json>
+
+O PostgreSQL fica disponível no host em `127.0.0.1:55432`, para evitar
+conflitos com outros projetos na porta `5432`. Altere `POSTGRES_HOST_PORT`
+no `.env` para escolher outra porta. Dentro do Docker, a API usa `db:5432`.
+Para conexões no VS Code ou em outros clientes locais, use o host
+`127.0.0.1`, a porta `55432` e as credenciais do `.env`.
+
+Para aplicar uma mudança de porta a um banco já iniciado:
+
+```bash
+docker compose up -d --no-deps db
+```
+
+O Compose recria o container do banco reutilizando o volume `postgres_data`.
 
 Para conferir o funcionamento, crie um dataset no Swagger com:
 
@@ -139,6 +154,25 @@ As rotas de variância e desvio padrão aceitam o parâmetro de consulta
 `sample`, com valor padrão `false`. A rota de percentil usa `percent=95` por
 padrão, e as consultas por limite usam `threshold_ms=120`.
 
+### Visualizações
+
+Todas as rotas abaixo devolvem a imagem diretamente com `Content-Type: image/png`.
+
+| Método | Caminho | Finalidade |
+| --- | --- | --- |
+| `GET` | `/datasets/{dataset_id}/charts/histogram` | Histograma com marcadores p50, p90, p95 e p99. |
+| `GET` | `/datasets/{dataset_id}/charts/boxplot` | Mediana, quartis, dispersão e possíveis outliers. |
+| `GET` | `/datasets/{dataset_id}/charts/timeline` | Latência pela ordem das medições, sem horários reais. |
+| `GET` | `/datasets/{dataset_id}/charts/cumulative` | Percentual acumulado por latência. |
+| `GET` | `/datasets/{dataset_id}/charts/frequency` | Quantidade de ocorrências de cada latência exata. |
+
+O histograma aceita `bins` como inteiro positivo (automático quando omitido)
+e `show_percentiles`, com padrão `true`. Por exemplo:
+`/datasets/1/charts/histogram?bins=6&show_percentiles=false`.
+Um dataset inexistente devolve `404`; parâmetros inválidos devolvem `422`,
+ambos no contrato JSON de erros. As imagens são geradas em memória, sem
+salvar arquivos no servidor.
+
 ## Contrato de erros
 
 Os erros conhecidos da API usam o mesmo formato de resposta:
@@ -153,6 +187,10 @@ Os erros conhecidos da API usam o mesmo formato de resposta:
 - `409 Conflict`: a operação deixaria o dataset sem medições;
 - `422 Unprocessable Content`: os dados de entrada ou uma regra de negócio são
   inválidos.
+
+Os IDs de datasets e medições devem ser inteiros de `1` a `2147483647`,
+conforme as colunas PostgreSQL. Valores fora desse intervalo devolvem `422`
+antes da consulta ao banco.
 
 O schema dessa resposta também aparece no OpenAPI e pode ser consultado pelo
 Swagger UI.

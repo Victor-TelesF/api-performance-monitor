@@ -36,8 +36,13 @@ cp .env.example .env
 ```
 
 A classe `Settings`, em `config.py`, lê as variáveis `POSTGRES_*` e monta a URL
-do SQLAlchemy. Entre containers, a API acessa o banco pelo hostname `db`. Para
-comandos executados diretamente no host, use `localhost`.
+do SQLAlchemy. Entre containers, a API acessa o banco em `db:5432`. No host,
+use `127.0.0.1:55432`. A variável `POSTGRES_HOST_PORT` define a porta publicada
+pelo Compose, com padrão `55432`; `POSTGRES_PORT=5432` mantém a conexão interna.
+
+Para aplicar uma mudança em `POSTGRES_HOST_PORT` a um banco já iniciado, execute
+`docker compose up -d --no-deps db`. O container é recriado com o mesmo volume
+`postgres_data`, preservando os dados.
 
 O `.env` é local, não entra no Git e não é copiado para a imagem Docker.
 
@@ -67,17 +72,20 @@ No ambiente local, com o PostgreSQL do Compose ativo:
 
 ```bash
 uv sync --locked
-POSTGRES_HOST=localhost uv run --locked alembic current
-POSTGRES_HOST=localhost uv run --locked alembic history
+POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=55432 uv run --locked alembic current
+POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=55432 uv run --locked alembic history
 ```
+
+Se personalizar `POSTGRES_HOST_PORT`, substitua `55432` nos comandos locais
+pela porta escolhida.
 
 ## Criar uma futura migração
 
 Depois de alterar os modelos SQLAlchemy:
 
 ```bash
-POSTGRES_HOST=localhost uv run --locked alembic revision --autogenerate -m "descricao_da_alteracao"
-POSTGRES_HOST=localhost uv run --locked alembic upgrade head
+POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=55432 uv run --locked alembic revision --autogenerate -m "descricao_da_alteracao"
+POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=55432 uv run --locked alembic upgrade head
 ```
 
 Revise o arquivo gerado antes de aplicar a migração. Depois de alterar o código
