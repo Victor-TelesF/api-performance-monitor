@@ -1,0 +1,23 @@
+# Blueprint opcional para a API; configure um PostgreSQL existente no painel.
+services:
+  - type: web
+    name: api-performance-monitor
+    runtime: docker
+    branch: main
+    autoDeployTrigger: checksPass
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Usa o CMD do Dockerfile: Alembic antes do Uvicorn.
+    healthCheckPath: /openapi.json
+    envVars:
+      - key: POSTGRES_HOST
+        sync: false
+      - key: POSTGRES_PORT
+        sync: false
+      - key: POSTGRES_DB
+        sync: false
+      - key: POSTGRES_USER
+        sync: false
+      - key: POSTGRES_PASSWORD
+        sync: false
