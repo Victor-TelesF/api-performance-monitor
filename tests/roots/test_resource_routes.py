@@ -2,6 +2,7 @@
 
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from api_performance_monitor.models.datasets_models import (
     LatencyDatasetModel,
@@ -10,7 +11,7 @@ from api_performance_monitor.models.datasets_models import (
 from main import app
 
 
-def test_dataset_creation_exposes_location_and_delete_uses_204(client: TestClient) -> None:
+def test_dataset_creation_exposes_location_and_delete_uses_204(client: TestClient, db_session: Session) -> None:
     created = client.post("/datasets", json={"latency_ms": [100, 200]})
 
     assert created.status_code == 201
@@ -23,6 +24,9 @@ def test_dataset_creation_exposes_location_and_delete_uses_204(client: TestClien
     assert deleted.status_code == 204
     assert deleted.content == b""
     assert client.get(f"/datasets/{dataset_id}").status_code == 404
+    assert db_session.scalars(
+        select(LatencyMeasurementModel.id).where(LatencyMeasurementModel.dataset_id == dataset_id)
+    ).all() == []
 
 
 def test_measurements_have_stable_ids_when_duplicates_are_removed(
