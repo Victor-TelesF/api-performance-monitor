@@ -28,4 +28,5 @@ USER app
 
 EXPOSE 8000
 
-CMD ["uv", "run", "--locked", "--no-sync", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Só inicia o servidor depois que todas as migrações forem aplicadas.
+CMD ["/bin/sh", "-c", "uv run --locked --no-sync alembic upgrade head && exec uv run --locked --no-sync uvicorn main:app --host 0.0.0.0 --port \"${PORT:-8000}\""]
