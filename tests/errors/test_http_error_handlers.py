@@ -20,7 +20,7 @@ from api_performance_monitor.domain.exceptions import (
     InvalidThresholdError,
     LatencyNotFoundError,
 )
-from api_performance_monitor.errors.errors import DatasetNotFoundError
+from api_performance_monitor.errors.errors import DatasetNotFoundError, MeasurementNotFoundError
 from api_performance_monitor.errors.http_error_handlers import (
     handle_dataset_not_found,
     handle_domain_error,
@@ -64,6 +64,14 @@ def test_handle_dataset_not_found_returns_404_with_detail() -> None:
 
     assert response.status_code == 404
     assert json.loads(response.body) == {"detail": str(error)}
+
+
+def test_handle_measurement_not_found_returns_404_with_detail() -> None:
+    error = MeasurementNotFoundError()
+    response = asyncio.run(handle_dataset_not_found(None, error))
+    assert response.status_code == 404
+    assert response.headers["content-type"] == "application/json"
+    assert json.loads(response.body) == {"detail": "Medição não encontrada."}
 
 
 def test_handle_domain_error_returns_404_for_latency_not_found() -> None:
