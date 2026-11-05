@@ -9,7 +9,11 @@ from fastapi import FastAPI
 from api_performance_monitor.errors.http_error_handlers import (
     register_exception_handlers,
 )
-from api_performance_monitor.roots import datasets_root, statistics_root
+from api_performance_monitor.roots import (
+    datasets_root,
+    statistics_root,
+    visualization_root,
+)
 
 tags_metadata = [
     {
@@ -25,6 +29,13 @@ tags_metadata = [
         "description": (
             "Consultas de tendência central, dispersão, percentis, limites "
             "e possíveis valores atípicos."
+        ),
+    },
+    {
+        "name": "Visualizações",
+        "description": (
+            "Gráficos PNG de distribuição, dispersão, frequência "
+            "e latência por ordem da medição."
         ),
     },
 ]
@@ -45,3 +56,4 @@ app = FastAPI(
 register_exception_handlers(app)
 app.include_router(datasets_root.router)
 app.include_router(statistics_root.router)
+app.include_router(visualization_root.router)
