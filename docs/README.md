@@ -17,6 +17,8 @@ da API e em sua inicialização rápida.
   alterações, validações e geração de gráficos.
 - [Banco de dados e migrações](database-and-migrations.md): PostgreSQL, Docker,
   Alembic, volumes e comandos executados dentro e fora dos containers.
+- [Deploy no Render](render-deploy.md): serviço Docker, PostgreSQL, variáveis,
+  migrações e configuração pelo painel ou Blueprint.
 - [Auditoria dos testes](testing-audit.md): contratos de erro, verificações de
   persistência, regressões injetadas e limites da validação.
 

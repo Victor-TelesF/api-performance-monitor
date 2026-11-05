@@ -70,9 +70,11 @@ Pré-requisitos: Docker com Compose instalado e o motor do Docker iniciado.
 cp .env.example .env
 docker compose build api
 docker compose up -d db
-docker compose run --rm api uv run --locked --no-sync alembic upgrade head
 docker compose up -d api
 ```
+
+O comando padrão da imagem aplica as migrações do Alembic antes de iniciar
+a API. Se a migração falhar, o servidor não inicia.
 
 Depois da inicialização:
 
@@ -112,6 +114,20 @@ indica ausência e seu tamanho informa a quantidade de ocorrências. Exclua
 uma medição pelo seu ID. Ambas as exclusões devolvem `204 No Content`.
 O campo `position` preserva a ordem de inserção e pode apresentar lacunas
 após exclusões.
+
+## Deploy no Render
+
+O repositório inclui um [`render.yaml`](render.yaml) para deploy com Docker,
+porta definida por `PORT`, migrações na inicialização e verificação HTTP em
+`/openapi.json`. As credenciais do PostgreSQL são configuradas no painel.
+
+O [workflow de CI](.github/workflows/ci.yml) executa os testes, constrói a imagem
+e verifica as migrações e a criação de datasets com PostgreSQL temporário.
+No serviço existente, configure **Auto-Deploy → After CI Checks Pass** para
+o Render fazer deploy de `main` após a aprovação desses checks. Deixe
+**Docker Command** vazio para usar a inicialização do Dockerfile.
+
+Consulte o [guia de deploy no Render](docs/render-deploy.md) para os detalhes.
 
 ## Endpoints atuais
 

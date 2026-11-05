@@ -51,13 +51,14 @@ O `.env` é local, não entra no Git e não é copiado para a imagem Docker.
 ```bash
 docker compose build api
 docker compose up -d db
-docker compose run --rm api uv run --locked --no-sync alembic upgrade head
 docker compose up -d api
 ```
 
-O Compose aguarda o healthcheck do PostgreSQL antes de iniciar a API. As
-migrações são aplicadas explicitamente: iniciar a aplicação não cria nem altera
-tabelas automaticamente.
+O Compose aguarda o healthcheck do PostgreSQL antes de iniciar a API. O comando
+padrão da imagem executa `alembic upgrade head` antes do Uvicorn e só inicia o
+servidor se as migrações forem aplicadas com sucesso. Em um banco já atualizado,
+o Alembic não reaplica as revisões existentes. Iniciar o Uvicorn diretamente,
+fora desse comando Docker, ainda exige executar as migrações separadamente.
 
 ## Inspecionar o estado das migrações
 
