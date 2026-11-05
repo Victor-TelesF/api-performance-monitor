@@ -7,13 +7,20 @@ Não publica portas nem usa volumes persistentes ou o banco de produção.
 import argparse
 import json
 import subprocess
+import sys
 import time
 
 
-def docker(*args: str) -> str:
-    return subprocess.check_output(
-        ["docker", *args], text=True, stderr=subprocess.STDOUT, timeout=120
-    ).strip()
+def docker(*args: str, merge_output: bool = False) -> str:
+    result = subprocess.run(
+        ["docker", *args], text=True, capture_output=True, timeout=120
+    )
+    # Downloads e avisos vão para stderr; stdout pode conter apenas um ID.
+    if result.stderr and not merge_output:
+        print(result.stderr, file=sys.stderr, end="")
+    result.check_returncode()
+    output = result.stdout + result.stderr if merge_output else result.stdout
+    return output.strip()
 
 
 def wait_for(container: str, command: list[str]) -> None:
@@ -28,7 +35,9 @@ def wait_for(container: str, command: list[str]) -> None:
         if docker("inspect", "--format", "{{.State.Running}}", container) != "true":
             break
         time.sleep(0.5)
-    raise RuntimeError(f"Container não ficou pronto:\n{docker('logs', container)}")
+    raise RuntimeError(
+        f"Container não ficou pronto:\n{docker('logs', container, merge_output=True)}"
+    )
 
 
 def check(image: str) -> None:
@@ -111,7 +120,7 @@ with urllib.request.urlopen(request, timeout=5) as response:
             "--env", "POSTGRES_PASSWORD=ci_password", "--env", "POSTGRES_DB=ci_db", image,
         )
         assert docker("wait", failed_api) != "0"
-        logs = docker("logs", failed_api)
+        logs = docker("logs", failed_api, merge_output=True)
         assert "connection refused" in logs.lower(), logs
         assert "Uvicorn running" not in logs, logs
         print("Falha de migração impediu a inicialização do servidor.", flush=True)
