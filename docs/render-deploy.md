@@ -26,8 +26,10 @@ Esse fluxo não exige deploy hook, token do Render nem credenciais de produção
 nos secrets do GitHub. A imagem construída no CI valida o Dockerfile; o Render
 constrói sua própria imagem do código aprovado, sem usar um registry intermediário.
 
-O `Dockerfile` instala as dependências de `uv.lock`, aplica as migrações do
-Alembic e então inicia `main:app`.
+O `Dockerfile` usa uma etapa de build para instalar as dependências de
+`uv.lock`. A imagem final contém a `.venv`, o ponto de entrada e as migrações,
+sem `uv`, ferramentas de teste ou CLIs do FastAPI. O comando de inicialização
+aplica as migrações do Alembic e então inicia `main:app`.
 O `render.yaml` registra uma configuração para um serviço web Docker no plano
 gratuito, usando um PostgreSQL existente. O arquivo não provisiona o banco.
 
@@ -49,14 +51,13 @@ Deixe **Docker Command** vazio para usar o `CMD` do Dockerfile atualizado.
 Se esse campo já contém apenas um comando Uvicorn, remova-o: ele substitui o
 `CMD` da imagem e impede a execução automática das migrações.
 
-Para corrigir o serviço antes de publicar o Dockerfile atualizado, você também
-pode definir **Docker Command** como:
+Se precisar definir **Docker Command** explicitamente, use:
 
 ```sh
-/bin/sh -c 'uv run --locked --no-sync alembic upgrade head && exec uv run --locked --no-sync uvicorn main:app --host 0.0.0.0 --port "${PORT:-10000}"'
+/bin/sh -c '/app/.venv/bin/alembic upgrade head && exec /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port "${PORT:-10000}"'
 ```
 
-Tanto esse comando quanto o novo `CMD` aplicam as migrações antes de iniciar
+Tanto esse comando quanto o `CMD` aplicam as migrações antes de iniciar
 a API. Se o Alembic falhar, o servidor não inicia. Não execute as migrações
 durante o build da imagem.
 
@@ -100,11 +101,11 @@ a configuração manual acima. Criar outro Blueprint pode criar outro serviço.
 A configuração gratuita executa as migrações a cada inicialização e considera
 uma única instância da aplicação. Antes de escalar para várias instâncias,
 separe as migrações em uma etapa única de deploy. Em serviços pagos, o Render
-oferece **Pre-Deploy Command**: use `uv run --locked --no-sync alembic upgrade head`
+oferece **Pre-Deploy Command**: use `/app/.venv/bin/alembic upgrade head`
 nessa etapa e defina **Docker Command** para iniciar somente o servidor:
 
 ```sh
-/bin/sh -c 'exec uv run --locked --no-sync uvicorn main:app --host 0.0.0.0 --port "${PORT:-10000}"'
+/bin/sh -c 'exec /app/.venv/bin/uvicorn main:app --host 0.0.0.0 --port "${PORT:-10000}"'
 ```
 
 Confira os logs do Alembic e do Uvicorn e abra `/docs` e `/openapi.json` na URL

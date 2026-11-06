@@ -65,8 +65,8 @@ fora desse comando Docker, ainda exige executar as migrações separadamente.
 Dentro do container:
 
 ```bash
-docker compose exec api uv run --locked --no-sync alembic current
-docker compose exec api uv run --locked --no-sync alembic history
+docker compose exec api alembic current
+docker compose exec api alembic history
 ```
 
 No ambiente local, com o PostgreSQL do Compose ativo:
