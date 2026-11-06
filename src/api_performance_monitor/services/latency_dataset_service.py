@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from ..domain.exceptions import DatasetWouldBecomeEmptyError
 from ..domain.latency import LatencyDataset
@@ -34,8 +34,16 @@ class LatencyDatasetService:
 
         return model_to_schema(model)
 
-    def list_datasets(self) -> list[ResponseLatencyDatasetSchema]:
-        stmt = select(LatencyDatasetModel)
+    def list_datasets(
+        self, *, limit: int = 50, offset: int = 0
+    ) -> list[ResponseLatencyDatasetSchema]:
+        stmt = (
+            select(LatencyDatasetModel)
+            .options(selectinload(LatencyDatasetModel.measurements))
+            .order_by(LatencyDatasetModel.id)
+            .limit(limit)
+            .offset(offset)
+        )
         models = self.db.scalars(stmt).all()
 
         return [model_to_schema(model) for model in models]

@@ -1,6 +1,8 @@
 """Recursos HTTP de datasets e medições de latência."""
 
-from fastapi import APIRouter, Request, Response, status
+from typing import Annotated
+
+from fastapi import APIRouter, Query, Request, Response, status
 
 from ..database import SessionDep
 from ..schemas.error_schema import ErrorResponseSchema
@@ -54,8 +56,12 @@ def create_dataset(
     summary="Listar datasets",
     response_model=list[ResponseLatencyDatasetSchema],
 )
-def list_datasets(db: SessionDep):
-    return LatencyDatasetService(db).list_datasets()
+def list_datasets(
+    db: SessionDep,
+    limit: Annotated[int, Query(ge=1, le=100, description="Datasets por página.")] = 50,
+    offset: Annotated[int, Query(ge=0, description="Quantidade de datasets a pular.")] = 0,
+):
+    return LatencyDatasetService(db).list_datasets(limit=limit, offset=offset)
 
 
 @router.get(
