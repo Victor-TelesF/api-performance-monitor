@@ -179,6 +179,33 @@ for name, figure in figures.items():
 registradas globalmente no `pyplot`, e `figure_to_png()` não fecha a figura
 recebida.
 
+## Reproduzir a imagem do README
+
+A prévia usa as mesmas seis medições ilustrativas do exemplo HTTP. Na raiz do
+projeto, depois de `uv sync --locked`, execute:
+
+```bash
+uv run --locked python - <<'PY'
+from pathlib import Path
+
+from api_performance_monitor.domain import LatencyDataset
+from api_performance_monitor.visualization import create_latency_histogram, figure_to_png
+
+dataset = LatencyDataset([100, 100, 110, 120, 130, 450])
+figure = create_latency_histogram(dataset, bins=6)
+try:
+    output = Path("docs/assets/latency-histogram.png")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with figure_to_png(figure) as png:
+        output.write_bytes(png.getvalue())
+finally:
+    figure.clear()
+PY
+```
+
+A rota `GET /datasets/{dataset_id}/charts/histogram?bins=6` usa esse mesmo
+gerador. Os dados são um exemplo didático, sem coleta de uma API externa.
+
 ## Responsabilidades dos módulos
 
 | Módulo | Responsabilidade |
