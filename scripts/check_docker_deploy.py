@@ -52,6 +52,16 @@ def check(image: str) -> None:
         return docker("exec", container, "/app/.venv/bin/python", "-c", code)
 
     try:
+        docker(
+            "run", "--rm", "--network", "none", "--entrypoint",
+            "/app/.venv/bin/python", image, "-c",
+            "import importlib.metadata as m, shutil; "
+            "installed = {d.metadata['Name'].lower() for d in m.distributions()}; "
+            "assert not installed.intersection({'pytest', 'fastapi-cli', 'fastapi-cloud-cli'}); "
+            "assert shutil.which('uv') is None and shutil.which('uvx') is None; "
+            "assert {'uvicorn', 'uvloop', 'httptools'}.issubset(installed)",
+        )
+        print("Imagem sem uv, pytest ou CLIs do FastAPI; servidor otimizado presente.", flush=True)
         database = start(
             "--network", "none", "--tmpfs", "/var/lib/postgresql/data",
             "--env", "POSTGRES_USER=ci_user", "--env", "POSTGRES_PASSWORD=ci_password",
@@ -103,6 +113,40 @@ with urllib.request.urlopen(request, timeout=5) as response:
         ))
         assert dataset["latency_ms"] == [100, 120, 150]
         print(f"Alembic na revisão {revision}; criação de dataset: HTTP 201.", flush=True)
+
+        python_in(api, f"""
+import json
+import urllib.request
+base = 'http://127.0.0.1:12345'
+with urllib.request.urlopen(base + '/datasets?limit=1&offset=0', timeout=5) as response:
+    assert [item['id'] for item in json.load(response)] == [{dataset['id']}]
+with urllib.request.urlopen(base + '/datasets?limit=1&offset=1', timeout=5) as response:
+    assert json.load(response) == []
+chart = base + '/datasets/{dataset['id']}/charts/histogram'
+with urllib.request.urlopen(chart, timeout=15) as response:
+    assert response.headers.get_content_type() == 'image/png'
+    original = response.read()
+    assert original.startswith(b'\\x89PNG\\r\\n\\x1a\\n')
+with urllib.request.urlopen(chart, timeout=5) as response:
+    assert response.read() == original
+request = urllib.request.Request(
+    base + '/datasets/{dataset['id']}/measurements',
+    data=json.dumps({{'latency_ms': 450}}).encode(),
+    headers={{'Content-Type': 'application/json'}},
+)
+with urllib.request.urlopen(request, timeout=5) as response:
+    added = json.load(response)
+with urllib.request.urlopen(chart, timeout=15) as response:
+    assert response.read() != original
+request = urllib.request.Request(
+    base + '/datasets/{dataset['id']}/measurements/' + str(added['id']), method='DELETE'
+)
+with urllib.request.urlopen(request, timeout=5) as response:
+    assert response.status == 204
+with urllib.request.urlopen(chart, timeout=5) as response:
+    assert response.read() == original
+""")
+        print("Paginação e PNGs verificados, inclusive após adicionar e remover medição.", flush=True)
 
         # Reiniciar o mesmo container executa novamente o CMD no banco já migrado.
         docker("restart", "--time", "5", api)
