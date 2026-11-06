@@ -12,11 +12,18 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from main import app
+from api_performance_monitor.roots import visualization_root
+from api_performance_monitor.visualization.cache import PngCache
 from api_performance_monitor.database import Base, get_db
 from api_performance_monitor.models.datasets_models import (
     LatencyDatasetModel,
     LatencyMeasurementModel,
 )
+
+
+@pytest.fixture(autouse=True)
+def isolated_png_cache(monkeypatch):
+    monkeypatch.setattr(visualization_root, "_png_cache", PngCache())
 
 
 @pytest.fixture()

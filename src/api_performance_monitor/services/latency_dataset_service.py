@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from ..domain.exceptions import DatasetWouldBecomeEmptyError
+from ..domain.exceptions import DatasetWouldBecomeEmptyError, InvalidLatencyError
 from ..domain.latency import LatencyDataset
 from ..domain.validation import validate_latency
 from ..errors.errors import DatasetNotFoundError, MeasurementNotFoundError
@@ -119,3 +119,20 @@ class LatencyDatasetService:
     def get_domain(self, dataset_id: int) -> LatencyDataset:
         model = self.db.get(LatencyDatasetModel, dataset_id)
         return model_to_domain(model)
+
+    def get_chart_domain(
+        self, dataset_id: int, *, max_measurements: int
+    ) -> LatencyDataset:
+        """Lê apenas o limite do gráfico mais uma linha para detectar excesso."""
+        self._get_model(dataset_id)
+        values = self.db.scalars(
+            select(LatencyMeasurementModel.latency_ms)
+            .where(LatencyMeasurementModel.dataset_id == dataset_id)
+            .order_by(LatencyMeasurementModel.position)
+            .limit(max_measurements + 1)
+        ).all()
+        if len(values) > max_measurements:
+            raise InvalidLatencyError(
+                f"Os gráficos aceitam no máximo {max_measurements} medições por dataset."
+            )
+        return LatencyDataset(values)

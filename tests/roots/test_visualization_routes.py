@@ -63,6 +63,7 @@ def test_chart_rejects_invalid_dataset_id(client: TestClient, chart: str, invali
         {"bins": "1.5"},
         {"bins": "invalid"},
         {"bins": "true"},
+        {"bins": "201"},
         {"show_percentiles": "invalid"},
     ),
 )
@@ -154,3 +155,66 @@ def test_route_renders_the_requested_chart_with_persisted_values(client, monkeyp
     assert response.status_code == 200
     assert captured == [title]
     assert response.content.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_cached_chart_refreshes_after_add_remove_and_delete(client, monkeypatch):
+    dataset = client.post("/datasets", json={"latency_ms": [100, 200]}).json()
+    path = f"/datasets/{dataset['id']}"
+    exports = []
+    original_export = visualization_root.figure_to_png
+
+    def export(figure):
+        exports.append(figure)
+        return original_export(figure)
+
+    monkeypatch.setattr(visualization_root, "figure_to_png", export)
+    first = client.get(f"{path}/charts/timeline")
+    repeated = client.get(f"{path}/charts/timeline")
+    assert first.status_code == repeated.status_code == 200
+    assert first.content == repeated.content
+    assert len(exports) == 1
+
+    added = client.post(f"{path}/measurements", json={"latency_ms": 450}).json()
+    changed = client.get(f"{path}/charts/timeline")
+    assert changed.status_code == 200
+    assert changed.content != first.content
+    assert len(exports) == 2
+
+    client.delete(f"{path}/measurements/{added['id']}")
+    restored = client.get(f"{path}/charts/timeline")
+    assert restored.status_code == 200
+    assert restored.content == first.content
+    assert len(exports) == 2
+
+    client.delete(path)
+    assert client.get(f"{path}/charts/timeline").status_code == 404
+
+
+@pytest.mark.parametrize("chart", CHARTS)
+def test_chart_measurement_limit_rejects_excess_before_rendering(client, monkeypatch, chart):
+    monkeypatch.setattr(visualization_root, "MAX_CHART_MEASUREMENTS", 3)
+    created = client.post("/datasets", json={"latency_ms": [10, 20, 30]}).json()
+    path = f"/datasets/{created['id']}"
+    assert client.get(f"{path}/charts/{chart}").status_code == 200
+    client.post(f"{path}/measurements", json={"latency_ms": 40})
+
+    def unexpected_render(*args, **kwargs):
+        pytest.fail("Não deve renderizar dados acima do limite.")
+
+    monkeypatch.setattr(visualization_root, "_png_response", unexpected_render)
+    response = client.get(f"{path}/charts/{chart}")
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Os gráficos aceitam no máximo 3 medições por dataset."}
+    assert client.get(path).json()["latency_ms"] == [10, 20, 30, 40]
+
+
+def test_frequency_limit_preserves_histogram_as_alternative(client, monkeypatch):
+    monkeypatch.setattr(visualization_root, "MAX_FREQUENCY_VALUES", 2)
+    created = client.post("/datasets", json={"latency_ms": [10, 10, 20]}).json()
+    path = f"/datasets/{created['id']}"
+    assert client.get(f"{path}/charts/frequency").status_code == 200
+    client.post(f"{path}/measurements", json={"latency_ms": 30})
+    response = client.get(f"{path}/charts/frequency")
+    assert response.status_code == 422
+    assert "latências distintas" in response.json()["detail"]
+    assert client.get(f"{path}/charts/histogram").status_code == 200
