@@ -5,302 +5,78 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-Armazene medições de latência em milissegundos, consulte estatísticas e gere
-gráficos pela API. O projeto combina FastAPI, PostgreSQL, NumPy e Matplotlib
-para explorar a distribuição dos tempos de resposta e identificar valores atípicos.
+**Transforme medições de latência em estatísticas e gráficos.**
+Armazene tempos de resposta em milissegundos, explore sua distribuição e
+identifique possíveis valores atípicos pela API.
 
-**[Experimentar no Swagger UI](https://api-performance-monitor-0vke.onrender.com/docs)**
-· [Executar localmente](#executar-com-docker)
-· [Consultar endpoints](#endpoints-atuais)
+[**Experimentar no Swagger ↗**](https://api-performance-monitor-0vke.onrender.com/docs)
+· [Executar localmente](#executar-localmente)
+· [Documentação](docs/README.md)
 
-> **Status:** em desenvolvimento. A versão atual trabalha com datasets de
-> latência informados pelo usuário; a coleta automática de APIs externas ainda
-> não faz parte desta entrega.
+> Em desenvolvimento: a versão atual analisa datasets enviados pelo usuário.
+> A coleta automática de APIs externas está no [plano da v1](docs/plano-v1.md).
 
-## API publicada
-
-Experimente as operações pelo navegador, sem instalar o projeto.
-
-| Acesso | Link |
-| --- | --- |
-| Swagger UI — explorar e executar requisições | [Abrir documentação interativa](https://api-performance-monitor-0vke.onrender.com/docs) |
-| ReDoc — consultar a referência da API | [Abrir referência](https://api-performance-monitor-0vke.onrender.com/redoc) |
-| OpenAPI — obter a especificação JSON | [Abrir especificação](https://api-performance-monitor-0vke.onrender.com/openapi.json) |
-
-**URL base:** `https://api-performance-monitor-0vke.onrender.com`
-
-### Primeiro teste
-
-No Swagger, abra **POST /datasets**, clique em **Try it out** e envie:
-
-```json
-{
-  "latency_ms": [100, 120, 150]
-}
-```
-
-A resposta `201 Created` inclui o `id` do dataset. Use esse ID nos campos
-`dataset_id` das outras operações:
-
-| Operação | O que experimentar |
-| --- | --- |
-| `GET /datasets/{dataset_id}` | Consultar as medições salvas. |
-| `GET /datasets/{dataset_id}/statistics/mean` | Obter a média em milissegundos. |
-| `GET /datasets/{dataset_id}/statistics/percentile?percent=95` | Consultar o percentil 95. |
-| `GET /datasets/{dataset_id}/charts/histogram` | Gerar um histograma em PNG. |
-
-Para adicionar uma medição, use **POST /datasets/{dataset_id}/measurements**
-com `{"latency_ms": 130}`. As mesmas operações estão disponíveis no ambiente local.
-
-## Funcionalidades atuais
-
-- API HTTP para:
-  - criar, consultar, listar com paginação e excluir datasets;
-  - adicionar e remover medições preservando sua ordem;
-  - consultar a existência e a quantidade de ocorrências de uma latência;
-  - calcular tendência central, dispersão, percentis, limites e outliers;
-  - consultar os cinco gráficos de latência em PNG;
-  - documentar e testar as operações pelo Swagger UI;
-- domínio Python para:
-  - validar valores negativos, booleanos, `NaN` e infinitos;
-  - calcular média, mediana, moda, variância e percentis;
-  - identificar outliers pelo intervalo interquartil;
-  - gerar histogramas, boxplots e outros gráficos em PNG;
-- infraestrutura com:
-  - persistência normalizada em PostgreSQL;
-  - migrações versionadas pelo Alembic;
-  - ambiente reproduzível com uv e Docker Compose;
-  - imagem Docker com etapas separadas de build e execução;
-  - CI com testes e verificação do deploy em PostgreSQL descartável.
-
-## Arquitetura
+## Como funciona
 
 ```mermaid
 flowchart LR
-    Client[Cliente HTTP] --> API[FastAPI / Pydantic]
-    API --> Service[Serviço de datasets]
-    Service --> Mapper[Mapper]
-    Mapper <--> Domain[Domínio de latência]
-    Mapper <--> ORM[SQLAlchemy ORM]
-    ORM --> DB[(PostgreSQL)]
-    Domain --> Stats[NumPy / estatísticas]
-    Domain --> Charts[Matplotlib / PNG]
+    Input["Envie latências em ms"] --> Dataset["Crie um dataset"]
+    Dataset --> Stats["Consulte estatísticas · JSON"]
+    Dataset --> Charts["Gere gráficos · PNG"]
 ```
 
-As regras matemáticas permanecem no domínio e não dependem do FastAPI nem do
-SQLAlchemy. O serviço coordena as operações das rotas, enquanto o mapper faz a
-conversão explícita entre schemas HTTP, objetos de domínio e modelos
-persistidos.
+| Organize | Analise | Visualize |
+| --- | --- | --- |
+| Crie datasets e adicione ou remova medições. | Consulte média, percentis, dispersão e outliers. | Gere histograma, boxplot, curva acumulada, frequência e gráfico por ordem da medição. |
 
-## Tecnologias
+## Experimente em três passos
 
-| Área | Tecnologia |
+No [Swagger UI](https://api-performance-monitor-0vke.onrender.com/docs), execute:
+
+**1. Crie um dataset** com `POST /datasets`:
+
+```json
+{"latency_ms": [100, 100, 110, 120, 130, 450]}
+```
+
+**2. Consulte as estatísticas** usando o `id` recebido como `dataset_id`:
+
+| Requisição | Resultado para o exemplo |
 | --- | --- |
-| API e contratos | FastAPI e Pydantic |
-| Domínio e cálculos | Python e NumPy |
-| Persistência | SQLAlchemy e PostgreSQL 17 |
-| Migrações | Alembic |
-| Visualização | Matplotlib |
-| Ambiente | uv e Docker Compose |
+| `GET /datasets/{dataset_id}/statistics/mean` | Média de aproximadamente **168,33 ms**. |
+| `GET /datasets/{dataset_id}/statistics/percentile?percent=95` | p95 de **370 ms**. |
+| `GET /datasets/{dataset_id}/statistics/outliers` | **450 ms** como possível valor atípico. |
 
-## Executar com Docker
+**3. Gere um gráfico** com `GET /datasets/{dataset_id}/charts/histogram?bins=6`:
 
-Pré-requisitos: Docker com Compose instalado e o motor do Docker iniciado.
+![Histograma do exemplo: cinco medições entre 100 e 130 ms e uma em 450 ms; linhas indicam p50, p90, p95 e p99.](docs/assets/latency-histogram.png)
+
+*PNG gerado pelo próprio projeto com os dados ilustrativos acima.
+[Como reproduzir a imagem](docs/domain-guide.md#reproduzir-a-imagem-do-readme).*
+
+## Executar localmente
+
+Com Docker e Compose disponíveis, na raiz de uma cópia recém-clonada:
 
 ```bash
 cp .env.example .env
-docker compose build api
-docker compose up -d db
-docker compose up -d api
+docker compose up -d --build
 ```
 
-O comando padrão da imagem aplica as migrações do Alembic antes de iniciar
-a API. Se a migração falhar, o servidor não inicia.
+Abra <http://localhost:8000/docs> e siga os mesmos três passos.
+O Compose aguarda o banco e a imagem aplica as migrações antes de iniciar a API.
+Se já tiver um `.env`, mantenha sua configuração.
 
-Depois da inicialização:
+[Configuração do banco e comandos Docker](docs/database-and-migrations.md)
+· [Desenvolvimento com uv e testes](docs/architecture.md#desenvolvimento-e-testes)
 
-- Swagger UI: <http://localhost:8000/docs>
-- ReDoc: <http://localhost:8000/redoc>
-- OpenAPI: <http://localhost:8000/openapi.json>
+## Explore a documentação
 
-O PostgreSQL fica disponível no host em `127.0.0.1:55432`, para evitar
-conflitos com outros projetos na porta `5432`. Altere `POSTGRES_HOST_PORT`
-no `.env` para escolher outra porta. Dentro do Docker, a API usa `db:5432`.
-Para conexões no VS Code ou em outros clientes locais, use o host
-`127.0.0.1`, a porta `55432` e as credenciais do `.env`.
-
-Para aplicar uma mudança de porta a um banco já iniciado:
-
-```bash
-docker compose up -d --no-deps db
-```
-
-O Compose recria o container do banco reutilizando o volume `postgres_data`.
-
-Para conferir o funcionamento local, abra o Swagger em
-<http://localhost:8000/docs> e siga o [primeiro teste](#primeiro-teste).
-
-`POST /datasets` devolve `201 Created`, o dataset criado e o cabeçalho
-`Location` para consultá-lo. Para adicionar uma medição, envie
-`{"latency_ms": 130}` a `POST /datasets/{dataset_id}/measurements`; a resposta
-também devolve `201 Created`, a medição com seu `id` e o respectivo `Location`.
-Liste as medições para descobrir seus IDs. A consulta opcional
-`?latency_ms=100` devolve apenas as ocorrências desse valor; uma lista vazia
-indica ausência e seu tamanho informa a quantidade de ocorrências. Exclua
-uma medição pelo seu ID. Ambas as exclusões devolvem `204 No Content`.
-O campo `position` preserva a ordem de inserção e pode apresentar lacunas
-após exclusões.
-
-## Deploy no Render
-
-O repositório inclui um [`render.yaml`](render.yaml) para deploy com Docker,
-porta definida por `PORT`, migrações na inicialização e verificação HTTP em
-`/openapi.json`. As credenciais do PostgreSQL são configuradas no painel.
-
-O [workflow de CI](.github/workflows/ci.yml) executa os testes, constrói a imagem
-e verifica as migrações e a criação de datasets com PostgreSQL temporário.
-No serviço existente, configure **Auto-Deploy → After CI Checks Pass** para
-o Render fazer deploy de `main` após a aprovação desses checks. Deixe
-**Docker Command** vazio para usar a inicialização do Dockerfile.
-
-Consulte o [guia de deploy no Render](docs/render-deploy.md) para os detalhes.
-
-## Endpoints atuais
-
-| Método | Caminho | Finalidade |
-| --- | --- | --- |
-| `POST` | `/datasets` | Criar um dataset. |
-| `GET` | `/datasets` | Listar uma página de datasets. |
-| `GET` | `/datasets/{dataset_id}` | Consultar um dataset. |
-| `DELETE` | `/datasets/{dataset_id}` | Excluir um dataset e suas medições. |
-| `POST` | `/datasets/{dataset_id}/measurements` | Adicionar uma medição. |
-| `GET` | `/datasets/{dataset_id}/measurements` | Listar medições, opcionalmente filtradas por `latency_ms`. |
-| `GET` | `/datasets/{dataset_id}/measurements/{measurement_id}` | Consultar uma medição. |
-| `DELETE` | `/datasets/{dataset_id}/measurements/{measurement_id}` | Remover a medição identificada pelo ID. |
-
-A listagem aceita `limit` (padrão `50`, de `1` a `100`) e `offset`
-(padrão `0`, não negativo), em ordem crescente de ID. A resposta continua
-sendo uma lista de datasets com suas medições. Por exemplo:
-`/datasets?limit=50&offset=50`. Uma página sem resultados devolve `[]`.
-As medições da página são carregadas em lote, sem uma consulta por dataset.
-
-### Estatísticas
-
-| Método | Caminho | Finalidade |
-| --- | --- | --- |
-| `GET` | `/datasets/{dataset_id}/statistics/count` | Consultar a quantidade de medições. |
-| `GET` | `/datasets/{dataset_id}/statistics/total` | Consultar a soma das latências. |
-| `GET` | `/datasets/{dataset_id}/statistics/minimum` | Consultar a menor latência. |
-| `GET` | `/datasets/{dataset_id}/statistics/maximum` | Consultar a maior latência. |
-| `GET` | `/datasets/{dataset_id}/statistics/amplitude` | Consultar a diferença entre o maior e o menor valor. |
-| `GET` | `/datasets/{dataset_id}/statistics/mean` | Consultar a média aritmética. |
-| `GET` | `/datasets/{dataset_id}/statistics/median` | Consultar a mediana. |
-| `GET` | `/datasets/{dataset_id}/statistics/mode` | Consultar as modas do dataset. |
-| `GET` | `/datasets/{dataset_id}/statistics/variance` | Consultar a variância populacional ou amostral. |
-| `GET` | `/datasets/{dataset_id}/statistics/standard-deviation` | Consultar o desvio padrão populacional ou amostral. |
-| `GET` | `/datasets/{dataset_id}/statistics/first-quartile` | Consultar o primeiro quartil. |
-| `GET` | `/datasets/{dataset_id}/statistics/second-quartile` | Consultar o segundo quartil. |
-| `GET` | `/datasets/{dataset_id}/statistics/third-quartile` | Consultar o terceiro quartil. |
-| `GET` | `/datasets/{dataset_id}/statistics/interquartile-range` | Consultar o intervalo interquartil. |
-| `GET` | `/datasets/{dataset_id}/statistics/percentile` | Consultar um percentil. |
-| `GET` | `/datasets/{dataset_id}/statistics/outliers` | Consultar possíveis valores atípicos. |
-| `GET` | `/datasets/{dataset_id}/statistics/count-above` | Contar medições acima de um limite. |
-| `GET` | `/datasets/{dataset_id}/statistics/proportion-above` | Consultar a proporção acima de um limite. |
-| `GET` | `/datasets/{dataset_id}/statistics/count-at-or-below` | Contar medições menores ou iguais a um limite. |
-
-As rotas de variância e desvio padrão aceitam o parâmetro de consulta
-`sample`, com valor padrão `false`. A rota de percentil usa `percent=95` por
-padrão, e as consultas por limite usam `threshold_ms=120`.
-
-### Visualizações
-
-Todas as rotas abaixo devolvem a imagem diretamente com `Content-Type: image/png`.
-
-| Método | Caminho | Finalidade |
-| --- | --- | --- |
-| `GET` | `/datasets/{dataset_id}/charts/histogram` | Histograma com marcadores p50, p90, p95 e p99. |
-| `GET` | `/datasets/{dataset_id}/charts/boxplot` | Mediana, quartis, dispersão e possíveis outliers. |
-| `GET` | `/datasets/{dataset_id}/charts/timeline` | Latência pela ordem das medições, sem horários reais. |
-| `GET` | `/datasets/{dataset_id}/charts/cumulative` | Percentual acumulado por latência. |
-| `GET` | `/datasets/{dataset_id}/charts/frequency` | Quantidade de ocorrências de cada latência exata. |
-
-O histograma aceita `bins` de `1` a `200` e `show_percentiles`, com padrão
-`true`. Quando `bins` é omitido, usa a raiz quadrada da quantidade de medições,
-arredondada para cima e limitada a 200 faixas. Por exemplo:
-`/datasets/1/charts/histogram?bins=6&show_percentiles=false`.
-Um dataset inexistente devolve `404`; parâmetros inválidos devolvem `422`,
-ambos no contrato JSON de erros. As imagens são geradas em memória, sem
-salvar arquivos no servidor.
-
-Os gráficos aceitam até **10.000 medições por dataset**; o gráfico de
-frequência aceita até **200 latências distintas**. Acima desses limites,
-a API devolve `422`, sem truncar os dados. Para muitas latências distintas,
-use o histograma. Esses limites são das visualizações, não da criação do dataset.
-
-PNGs repetidos são reutilizados por um cache LRU de até **16 MiB e 64 entradas
-por processo**, identificado pelo tipo do gráfico, opções e conteúdo atual das
-medições. Adicionar ou remover medições muda a chave; excluir o dataset continua
-retornando `404`. Reiniciar o processo descarta o cache. Acertos no cache não
-aguardam a renderização de outros gráficos; renderizações novas continuam
-protegidas pelo lock exigido pelo Matplotlib.
-
-## Contrato de erros
-
-Os erros conhecidos da API usam o mesmo formato de resposta:
-
-```json
-{
-  "detail": "Descrição do erro."
-}
-```
-
-- `404 Not Found`: o dataset ou a medição solicitada não existe;
-- `409 Conflict`: a operação deixaria o dataset sem medições;
-- `422 Unprocessable Content`: os dados de entrada ou uma regra de negócio são
-  inválidos.
-
-Os IDs de datasets e medições devem ser inteiros de `1` a `2147483647`,
-conforme as colunas PostgreSQL. Valores fora desse intervalo devolvem `422`
-antes da consulta ao banco.
-
-O schema dessa resposta também aparece no OpenAPI e pode ser consultado pelo
-Swagger UI.
-
-## Documentação de desenvolvimento
-
-- [Plano detalhado da primeira versão](docs/plano-v1.md)
-- [Guia do domínio e das visualizações](docs/domain-guide.md)
-- [Banco de dados e migrações](docs/database-and-migrations.md)
-- [Índice da documentação](docs/README.md)
-
-## Estrutura do projeto
-
-```text
-.
-├── alembic/                         # Migrações do banco
-├── docs/                            # Guias de estudo e desenvolvimento
-├── src/api_performance_monitor/
-│   ├── domain/                      # Regras e cálculos de latência
-│   ├── errors/                      # Tradução de erros para HTTP
-│   ├── mapper/                      # Conversões entre camadas
-│   ├── models/                      # Modelos SQLAlchemy
-│   ├── roots/                       # Rotas FastAPI
-│   ├── schemas/                     # Contratos Pydantic
-│   ├── services/                    # Orquestração entre API e persistência
-│   └── visualization/               # Gráficos e exportação PNG
-├── compose.yaml
-├── Dockerfile
-└── main.py                          # Configuração da aplicação
-```
-
-## Comandos úteis
-
-```bash
-docker compose logs -f api
-docker compose exec api alembic current
-uv run --locked pytest -q
-docker compose down
-```
-
-`docker compose down` remove os containers, mas preserva os dados armazenados
-no volume `postgres_data`.
+| Quero… | Guia |
+| --- | --- |
+| Consultar rotas, parâmetros, erros e limites | [Referência da API](docs/api-reference.md) |
+| Entender as camadas e executar os testes | [Arquitetura e desenvolvimento](docs/architecture.md) |
+| Estudar os cálculos e gerar gráficos em Python | [Domínio e visualizações](docs/domain-guide.md) |
+| Configurar PostgreSQL e migrações | [Banco de dados](docs/database-and-migrations.md) |
+| Entender o deploy e o CI | [Deploy no Render](docs/render-deploy.md) |
+| Conhecer as próximas etapas | [Plano da v1](docs/plano-v1.md) |
