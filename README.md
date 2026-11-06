@@ -5,18 +5,57 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 
-Backend para armazenar e analisar conjuntos de medições de latência. A API HTTP
-gerencia datasets e suas medições e expõe consultas estatísticas e gráficos PNG.
-O domínio isolado concentra os cálculos e as visualizações usados pelo projeto.
+Armazene medições de latência em milissegundos, consulte estatísticas e gere
+gráficos pela API. O projeto combina FastAPI, PostgreSQL, NumPy e Matplotlib
+para explorar a distribuição dos tempos de resposta e identificar valores atípicos.
+
+**[Experimentar no Swagger UI](https://api-performance-monitor-0vke.onrender.com/docs)**
+· [Executar localmente](#executar-com-docker)
+· [Consultar endpoints](#endpoints-atuais)
 
 > **Status:** em desenvolvimento. A versão atual trabalha com datasets de
 > latência informados pelo usuário; a coleta automática de APIs externas ainda
 > não faz parte desta entrega.
 
+## API publicada
+
+Experimente as operações pelo navegador, sem instalar o projeto.
+
+| Acesso | Link |
+| --- | --- |
+| Swagger UI — explorar e executar requisições | [Abrir documentação interativa](https://api-performance-monitor-0vke.onrender.com/docs) |
+| ReDoc — consultar a referência da API | [Abrir referência](https://api-performance-monitor-0vke.onrender.com/redoc) |
+| OpenAPI — obter a especificação JSON | [Abrir especificação](https://api-performance-monitor-0vke.onrender.com/openapi.json) |
+
+**URL base:** `https://api-performance-monitor-0vke.onrender.com`
+
+### Primeiro teste
+
+No Swagger, abra **POST /datasets**, clique em **Try it out** e envie:
+
+```json
+{
+  "latency_ms": [100, 120, 150]
+}
+```
+
+A resposta `201 Created` inclui o `id` do dataset. Use esse ID nos campos
+`dataset_id` das outras operações:
+
+| Operação | O que experimentar |
+| --- | --- |
+| `GET /datasets/{dataset_id}` | Consultar as medições salvas. |
+| `GET /datasets/{dataset_id}/statistics/mean` | Obter a média em milissegundos. |
+| `GET /datasets/{dataset_id}/statistics/percentile?percent=95` | Consultar o percentil 95. |
+| `GET /datasets/{dataset_id}/charts/histogram` | Gerar um histograma em PNG. |
+
+Para adicionar uma medição, use **POST /datasets/{dataset_id}/measurements**
+com `{"latency_ms": 130}`. As mesmas operações estão disponíveis no ambiente local.
+
 ## Funcionalidades atuais
 
 - API HTTP para:
-  - criar, consultar, listar e excluir datasets;
+  - criar, consultar, listar com paginação e excluir datasets;
   - adicionar e remover medições preservando sua ordem;
   - consultar a existência e a quantidade de ocorrências de uma latência;
   - calcular tendência central, dispersão, percentis, limites e outliers;
@@ -30,7 +69,9 @@ O domínio isolado concentra os cálculos e as visualizações usados pelo proje
 - infraestrutura com:
   - persistência normalizada em PostgreSQL;
   - migrações versionadas pelo Alembic;
-  - ambiente reproduzível com uv e Docker Compose.
+  - ambiente reproduzível com uv e Docker Compose;
+  - imagem Docker com etapas separadas de build e execução;
+  - CI com testes e verificação do deploy em PostgreSQL descartável.
 
 ## Arquitetura
 
@@ -96,13 +137,8 @@ docker compose up -d --no-deps db
 
 O Compose recria o container do banco reutilizando o volume `postgres_data`.
 
-Para conferir o funcionamento, crie um dataset no Swagger com:
-
-```json
-{
-  "latency_ms": [100, 120, 150]
-}
-```
+Para conferir o funcionamento local, abra o Swagger em
+<http://localhost:8000/docs> e siga o [primeiro teste](#primeiro-teste).
 
 `POST /datasets` devolve `201 Created`, o dataset criado e o cabeçalho
 `Location` para consultá-lo. Para adicionar uma medição, envie
@@ -134,13 +170,19 @@ Consulte o [guia de deploy no Render](docs/render-deploy.md) para os detalhes.
 | Método | Caminho | Finalidade |
 | --- | --- | --- |
 | `POST` | `/datasets` | Criar um dataset. |
-| `GET` | `/datasets` | Listar todos os datasets. |
+| `GET` | `/datasets` | Listar uma página de datasets. |
 | `GET` | `/datasets/{dataset_id}` | Consultar um dataset. |
 | `DELETE` | `/datasets/{dataset_id}` | Excluir um dataset e suas medições. |
 | `POST` | `/datasets/{dataset_id}/measurements` | Adicionar uma medição. |
 | `GET` | `/datasets/{dataset_id}/measurements` | Listar medições, opcionalmente filtradas por `latency_ms`. |
 | `GET` | `/datasets/{dataset_id}/measurements/{measurement_id}` | Consultar uma medição. |
 | `DELETE` | `/datasets/{dataset_id}/measurements/{measurement_id}` | Remover a medição identificada pelo ID. |
+
+A listagem aceita `limit` (padrão `50`, de `1` a `100`) e `offset`
+(padrão `0`, não negativo), em ordem crescente de ID. A resposta continua
+sendo uma lista de datasets com suas medições. Por exemplo:
+`/datasets?limit=50&offset=50`. Uma página sem resultados devolve `[]`.
+As medições da página são carregadas em lote, sem uma consulta por dataset.
 
 ### Estatísticas
 
@@ -182,12 +224,25 @@ Todas as rotas abaixo devolvem a imagem diretamente com `Content-Type: image/png
 | `GET` | `/datasets/{dataset_id}/charts/cumulative` | Percentual acumulado por latência. |
 | `GET` | `/datasets/{dataset_id}/charts/frequency` | Quantidade de ocorrências de cada latência exata. |
 
-O histograma aceita `bins` como inteiro positivo (automático quando omitido)
-e `show_percentiles`, com padrão `true`. Por exemplo:
+O histograma aceita `bins` de `1` a `200` e `show_percentiles`, com padrão
+`true`. Quando `bins` é omitido, usa a raiz quadrada da quantidade de medições,
+arredondada para cima e limitada a 200 faixas. Por exemplo:
 `/datasets/1/charts/histogram?bins=6&show_percentiles=false`.
 Um dataset inexistente devolve `404`; parâmetros inválidos devolvem `422`,
 ambos no contrato JSON de erros. As imagens são geradas em memória, sem
 salvar arquivos no servidor.
+
+Os gráficos aceitam até **10.000 medições por dataset**; o gráfico de
+frequência aceita até **200 latências distintas**. Acima desses limites,
+a API devolve `422`, sem truncar os dados. Para muitas latências distintas,
+use o histograma. Esses limites são das visualizações, não da criação do dataset.
+
+PNGs repetidos são reutilizados por um cache LRU de até **16 MiB e 64 entradas
+por processo**, identificado pelo tipo do gráfico, opções e conteúdo atual das
+medições. Adicionar ou remover medições muda a chave; excluir o dataset continua
+retornando `404`. Reiniciar o processo descarta o cache. Acertos no cache não
+aguardam a renderização de outros gráficos; renderizações novas continuam
+protegidas pelo lock exigido pelo Matplotlib.
 
 ## Contrato de erros
 
@@ -242,7 +297,7 @@ Swagger UI.
 
 ```bash
 docker compose logs -f api
-docker compose exec api uv run --locked --no-sync alembic current
+docker compose exec api alembic current
 uv run --locked pytest -q
 docker compose down
 ```
